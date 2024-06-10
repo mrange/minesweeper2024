@@ -8,7 +8,7 @@
 
 #else // if SHADER_MINIFIER_IMPL
 
-// D:\code\github\impulse-samples\source\FourK\minesweeper\shader.frag
+// D:\code\github\minesweeper2024\source\minesweeper\shader.frag
 "#version 430\n"
  "const float y=1./8;"
  "out vec4 v;"

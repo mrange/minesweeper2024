@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
   #pragma code_seg(".lcg_rand_uint32")
-  uint32_t lcg_rand_uint32(uint32_t exclusive_max) {
+  __declspec(noinline) uint32_t lcg_rand_uint32(uint32_t exclusive_max) {
     lcg_state = (1664525U * lcg_state + 1013904223U);
     uint64_t v = static_cast<uint64_t>(lcg_state)*exclusive_max;
     return static_cast<uint32_t>(v >> 32);
@@ -63,7 +63,7 @@ extern "C" {
 #endif
 
     auto remaining_bombs = BOMBS_PER_BOARD;
-    while (remaining_bombs > 0) {
+    do {
       auto x = lcg_rand_uint32(CELLS);
       auto y = lcg_rand_uint32(CELLS);
       auto i = CELLS*y+x;
@@ -76,7 +76,7 @@ extern "C" {
 
       cell.has_bomb = true;
       --remaining_bombs;
-    }
+    } while (remaining_bombs > 0);
 
     for (auto y = 0; y < CELLS; ++y) {
       for (auto x = 0; x < CELLS; ++x) {
@@ -85,10 +85,8 @@ extern "C" {
         assert(i < CELLS*CELLS);
         auto & cell       = game.board.cells[i];
         cell.prev_state   = cell_state::initial;
-        cell.state        = cell_state::covered_empty;
-        cell.next_state   = cell_state::covered_empty;
-        cell.changed_time = time-game.start_time;
-        cell.mouse_time   = time-game.start_time;
+        cell.state        = cell.next_state = cell_state::covered_empty;
+        cell.changed_time = cell.mouse_time = time-game.start_time;
 
         auto near_bombs   = 0;
         auto near_cells   = 0;
