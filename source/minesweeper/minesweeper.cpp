@@ -75,11 +75,12 @@ extern "C" {
       }
 
       cell.has_bomb = true;
-      --remaining_bombs;
-    } while (remaining_bombs > 0);
+    } while (--remaining_bombs > 0);
 
-    for (auto y = 0; y < CELLS; ++y) {
-      for (auto x = 0; x < CELLS; ++x) {
+    auto y = CELLS-1;
+    do {
+      auto x = CELLS-1;
+      do {
         auto i            = x + y*CELLS;
         assert(i >= 0);
         assert(i < CELLS*CELLS);
@@ -109,8 +110,8 @@ extern "C" {
           }
         }
         cell.near_bombs = near_bombs;
-      }
-    }
+      } while(--x >= 0);
+    } while (--y >= 0);
 
     for(;;) {
       auto x0 = lcg_rand_uint32(CELLS/2);

@@ -32,7 +32,7 @@ const float
 // The result of the shader
 out vec4 fcol;
 // Set by draw_game
-uniform vec4[12*12+2] state;
+uniform vec4[146] state;  // 146 is CELLS*CELLS + STATE_SIZE
 
 // ----------------------------------------------------------------------------
 // The Shader
@@ -148,19 +148,19 @@ float circle8(vec2 p, float r) {
 vec3 norm8(vec2 p, float r) {
   vec2 p4 = p*p;
   p4 *= p4;
-  float r8 = r*r;
-  r8 *= r8;
-  r8 *= r8;
-  float z8 = r8-dot(p4, p4);
-  float z = pow(z8, 1./8);
+  float 
+    r8 = pow(r,8) 
+  , z8  = r8-dot(p4, p4)
+  , z   = pow(z8, 1./8);
   if (z8 < 0) return vec3(0,0,1);
-  vec3 cp = vec3(p, z);
-  vec3 cp2 = cp*cp;
-  vec3 cp7 = cp2*cp2;
+  vec3 
+    cp = vec3(p, z)
+  , cp2 = cp*cp
+  , cp7 = cp2*cp2
+  ;
   cp7 *= cp2*cp;
   return normalize(cp7);
 }
-
 
 float segmentx(vec2 p, vec2 dim) {
   p.x = abs(p.x);
@@ -171,12 +171,10 @@ float segmentx(vec2 p, vec2 dim) {
 vec3 digit(vec2 p, vec3 acol, vec3 icol, float aa, float n) {
   vec2
       ap = abs(p)
-    , cp = p-.5
-    , cn = round(cp)
     , p0 = p
-    , p1 = p
-    , n1 = sign(p1)
     , p2 = p
+    , p1 = ap.yx-.5
+    , sp = sign(p)
     ;
 
   if (ap.x > (.6+ddim.y)||ap.y > (1.1+ddim.y)) return vec3(0);
@@ -185,12 +183,15 @@ vec3 digit(vec2 p, vec3 acol, vec3 icol, float aa, float n) {
   float n0 = round(p0.y);
   p0.y -= n0;
 
-  p1    = abs(p1.yx)-.5;
-  p2.y  = abs(p.y)-0.5;
+  p2.y  = ap.y-.5;
   p2    = abs(p2);
 
   // Praying bit shift operations aren't TOO slow
-  vec3 scol = ((ddigits[int(floor(n))] & (1 << int(dot(vec2(1, -1)/sqrt(2), p2) > 0 ? (3+(n1.x+1)/2 + n1.y+1) : -n0))) == 0) ? icol : acol;
+  vec3 scol = 
+      ((ddigits[int(floor(n))] & (1 << int(dot(vec2(1, -1)/sqrt(2), p2) > 0 ? (3+(sp.x+1)/2 + sp.y+1) : -n0))) == 0) 
+    ? icol 
+    : acol
+    ;
 
   return scol*smoothstep(aa, -aa, min(segmentx(p0, ddim), segmentx(p1, ddim)));
 }
@@ -219,8 +220,6 @@ void main() {
     , faa = aa/(fz*cz)
     , sty = sign(tcp.y)
     ;
-
-  //mp.y     = -mp.y;
 
   vec3
       col = vec3(0)
@@ -258,7 +257,7 @@ void main() {
 
   cp = cp/cz-.5;
 
-  tcp.x -= -tcw*tr/2+p.y/5;
+  tcp.x -= p.y/5-tcw*tr/2;
   tcp.y = abs(tcp.y)-.9;
 
   vec2
@@ -303,20 +302,20 @@ void main() {
         n     = norm8(cp, .45-1./80-mfo/40)
       , ccol  = tanh(8*col)/8
       ;
-    float fre = 1+dot(n, rd3);
 
-
-
-    float
-        spe0 = pow(max(dot(ld0, reflect(rd3, n)), 0), 22)
+    float 
+        fre = 1+dot(n, rd3)
+      , spe0 = pow(max(dot(ld0, reflect(rd3, n)), 0), 22)
       , spe3 = pow(max(dot(ld3, reflect(rd3, n)), 0), 44)
       ;
 
     for (int i = 0; i < 2; ++i) {
-      float cs    = i == 0?c.y:c.x;
-      float m     = i == 0?1-sfo:sfo;
+      float 
+        cs    = i == 0?c.y:c.x
+      , m     = i == 0?1-sfo:sfo
+      , gd    = abs(length(cp)-.1*max(mfo, bfo))
+      ;
       vec2 bstate = bstates[int(cs)];
-      float gd = abs(length(cp)-.1*max(mfo, bfo));
       for (float yy = 0; yy < bstate.y; ++yy) {
         gd = min(abs(gd-.1), gd);
       }
