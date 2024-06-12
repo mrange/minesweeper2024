@@ -46,7 +46,7 @@ extern "C" {
   }
 
   #pragma code_seg(".reset_board")
-  void reset_board(float time) {
+  __declspec(noinline) void reset_board(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_BOARD 0x2254
@@ -140,7 +140,7 @@ extern "C" {
   }
 
   #pragma code_seg(".reset_game")
-  void reset_game(float time) {
+  __declspec(noinline) void reset_game(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_GAME 0x2270
@@ -163,7 +163,7 @@ extern "C" {
   }
 
   #pragma code_seg(".draw_game")
-  void draw_game(float time) {
+  __declspec(noinline) void draw_game(float time) {
     int const size  = sizeof(state)/sizeof(GLfloat);
     auto g_t        = GAME_SPEED*(time-game.start_time);
     auto r_x        = static_cast<GLfloat>(res_x);
