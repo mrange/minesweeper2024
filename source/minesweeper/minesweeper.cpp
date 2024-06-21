@@ -192,8 +192,8 @@ extern "C" {
     *s++        = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
     assert(s == state+4*STATE_SIZE);
 
-    auto mp_x   = (-res_x+2.F*m_x)/res_y;
-    auto mp_y   = -(-res_y+2.F*m_y)/res_y;
+    auto mp_x   = (2.F*m_x-res_x)/res_y;
+    auto mp_y   = (res_y-2.F*m_y)/res_y;
 
     auto mcp_x  = mp_x;
     auto mcp_y  = mp_y;
@@ -246,7 +246,7 @@ extern "C" {
       if (cell.state == cell.next_state && game.game_state == game_state::playing) {
         // React on mouse click if state is up to date and we are playing
 
-        if (mouse_left_button == 0 && mouse_left_button_previous == 1) {
+        if (!mouse_buttons[LBUTTON] && mouse_buttons_previous[LBUTTON]) {
           // Left button released
           switch (cell.state) {
             case cell_state::uncovered:
@@ -279,7 +279,7 @@ extern "C" {
           }
         }
 
-        if (mouse_right_button == 0 && mouse_right_button_previous == 1) {
+        if (!mouse_buttons[RBUTTON] && mouse_buttons_previous[RBUTTON]) {
           // Right button released
           switch (cell.state) {
             case cell_state::covered_empty:
@@ -357,8 +357,8 @@ extern "C" {
       }
     }
 
-    mouse_left_button_previous  = mouse_left_button;
-    mouse_right_button_previous = mouse_right_button;
+    mouse_buttons_previous[0] = mouse_buttons[0];
+    mouse_buttons_previous[1] = mouse_buttons[1];
 
     //  Jump to first cell
     s           = state+4*STATE_SIZE;
@@ -383,34 +383,76 @@ extern "C" {
     glRects(-1, -1, 1, 1);
   }
 
+  #pragma code_seg(".update_mouse_buttons")
+  void __forceinline __fastcall update_mouse_buttons(UINT uMsg) {
+    static_assert(WM_LBUTTONDOWN  == 0x201, "WM_LBUTTONDOWN");
+    static_assert(WM_LBUTTONUP    == 0x202, "WM_LBUTTONUP"  );
+    static_assert(WM_RBUTTONDOWN  == 0x204, "WM_RBUTTONDOWN");
+    static_assert(WM_RBUTTONUP    == 0x205, "WM_RBUTTONUP"  );
+    assert(uMsg >= 0x201 && uMsg <= 0x205);
+    assert(uMsg != 0x203);
+    __asm {
+      mov eax           , [uMsg]
+      sub ax            , 0x205
+      neg ax
+      xor dx            , dx
+      mov cx            , 3
+      div cx
+      // No need to sign extend because top 16 bit should be 0 from the sub ops before
+      //  and ax should always be positive
+      mov [mouse_buttons+eax] , dl
+    }
+  }
+
   #pragma code_seg(".WndProc")
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    auto mx = mouse_x;
     switch (uMsg) {
-      // To be ignored
-      case WM_SYSCOMMAND:
-        if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER)
-          return 0;
-        break;
-      // Mouse moved
-      case WM_MOUSEMOVE:
-        mouse_x = GET_X_LPARAM(lParam);
-        mouse_y = GET_Y_LPARAM(lParam);
-        break;
+      // It's time to stop!
+      case WM_DESTROY:
+      case WM_CLOSE:
+        PostQuitMessage(0);
+        return 0;
       // Resized the window? No problem!
       case WM_SIZE:
         res_x = LOWORD(lParam);
         res_y = HIWORD(lParam);
         glViewport(0, 0, res_x, res_y);
         break;
+      case WM_KEYDOWN:
+      case WM_CHAR:
+        // Done on Escape
+        if (wParam == VK_ESCAPE) {
+          PostQuitMessage(0);
+          return 0;
+        } else if (wParam == 'R') {
+          game.game_state = game_state::resetting_game;
+#ifdef _DEBUG
+        } else if (wParam == 'B') {
+          game.game_state = game_state::resetting_board;
+#endif
+        }
+        break;
+/*
+      // To be ignored
+      case WM_SYSCOMMAND:
+        if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER)
+          return 0;
+        break;
+*/
+      // Mouse moved
+      case WM_MOUSEMOVE:
+        mouse_x = GET_X_LPARAM(lParam);
+        mouse_y = GET_Y_LPARAM(lParam);
+        break;
       // Capture mouse buttons
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
-        mouse_left_button = uMsg == WM_LBUTTONDOWN;
-        break;
       case WM_RBUTTONDOWN:
       case WM_RBUTTONUP:
-        mouse_right_button = uMsg == WM_RBUTTONDOWN;
+        update_mouse_buttons(uMsg);
+#ifdef _DEBUG
+        printf("button state: %d(%d),%d(%d)\n", mouse_buttons[LBUTTON], mouse_buttons_previous[LBUTTON], mouse_buttons[RBUTTON], mouse_buttons_previous[RBUTTON]);
+#endif
         break;
       case MM_WOM_DONE:
         {
@@ -424,25 +466,6 @@ extern "C" {
           , sizeof(waveHeader)
           );
           assert(waveWriteOk == MMSYSERR_NOERROR);
-        }
-        break;
-      // It's time to stop!
-      case WM_CLOSE:
-      case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-      case WM_CHAR:
-      case WM_KEYDOWN:
-        // Done on Escape
-        if (wParam == VK_ESCAPE) {
-          PostQuitMessage(0);
-          return 0;
-        } else if (wParam == 'R') {
-          game.game_state = game_state::resetting_game;
-#ifdef _DEBUG
-        } else if (wParam == 'B') {
-          game.game_state = game_state::resetting_board;
-#endif
         }
         break;
     }
@@ -532,8 +555,8 @@ int __cdecl main() {
   lcg_state = GetTickCount()+0x19740531U;
 //    lcg_state = 19740531;
 
-    // Bit of debugging info during debug builds
-    //  Don't want to waste bytes on that in Release mode
+  // Bit of debugging info during debug builds
+  //  Don't want to waste bytes on that in Release mode
 #ifdef _DEBUG
   glEnable(GL_DEBUG_OUTPUT);
   ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debugCallback, 0);

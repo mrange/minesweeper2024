@@ -46,6 +46,8 @@
 #define SU_RESTART_POS  (SU_BUFFER_LENGTH/2)
 
 #define GAME_SPEED      1.F
+#define LBUTTON         1
+#define RBUTTON         0
 
 #ifdef _DEBUG
 #include "assert.h"
@@ -122,11 +124,9 @@ extern "C" {
   int                 res_y                         ;
   int                 mouse_x                       ;
   int                 mouse_y                       ;
-  int                 mouse_left_button_previous    ;
-  int                 mouse_left_button             ;
-  int                 mouse_right_button_previous   ;
-  int                 mouse_right_button            ;
   float               application_start_time        ;
+  char                mouse_buttons_previous[2]     ;
+  char                mouse_buttons[2]              ;
   struct game         game                          ;
   GLfloat             state[TOTAL_STATE]            ;
   HWAVEOUT            waveOut                       ;
