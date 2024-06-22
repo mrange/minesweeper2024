@@ -384,7 +384,7 @@ extern "C" {
   }
 
   #pragma code_seg(".update_mouse_buttons")
-  void __forceinline __fastcall update_mouse_buttons(UINT uMsg) {
+  void __forceinline update_mouse_buttons(UINT uMsg) {
     static_assert(WM_LBUTTONDOWN  == 0x201, "WM_LBUTTONDOWN");
     static_assert(WM_LBUTTONUP    == 0x202, "WM_LBUTTONUP"  );
     static_assert(WM_RBUTTONDOWN  == 0x204, "WM_RBUTTONDOWN");
@@ -393,10 +393,10 @@ extern "C" {
     assert(uMsg != 0x203);
     __asm {
       mov eax           , [uMsg]
-      sub ax            , 0x205
-      neg ax
-      xor dx            , dx
-      mov cx            , 3
+      sub eax           , 0x205
+      neg eax
+      xor edx           , edx
+      mov ecx           , 3
       div cx
       // No need to sign extend because top 16 bit should be 0 from the sub ops before
       //  and ax should always be positive
