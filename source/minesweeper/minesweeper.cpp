@@ -162,6 +162,86 @@ extern "C" {
     reset_board(time);
   }
 
+  #pragma code_seg(".update_res_and_mouse")
+  void MS_INLINE update_res_and_mouse(UINT uMsg, LPARAM lParam) {
+          static_assert(STATE__RES_X + 4 == STATE__MOUSE_X, "STATE__RES_X+4");
+          static_assert(STATE__RES_Y + 4 == STATE__MOUSE_Y, "STATE__RES_Y+4");
+          assert(uMsg == WM_SIZE || uMsg == WM_MOUSEMOVE);
+#ifdef APPLY_ASSEMBLER
+    __asm {
+      mov         eax,[lParam]
+      // edx is y
+      movsx       ecx,ax
+      shr         eax,10h
+      // ecx is y
+      movsx       edx,ax
+      mov         eax,[uMsg]
+
+      // Is mousemove?
+      sub         eax,0x200
+      // eax is 0 if so
+      sbb         eax,eax
+      // but flip its
+      not         eax
+      // Offset depending on message
+      and         eax,0x10
+      lea         esi,[state+eax];
+      push        edx
+      fild        [esp]
+      fstp        [esi+4]
+      push        ecx
+      fild        [esp]
+      fstp        [esi]
+      test eax, eax
+      jnz         wm_mousemove
+      // eax is 0
+      push        eax
+      push        eax
+      call        glViewport
+      sub         esp,8
+  wm_mousemove:
+      add         esp,8
+    }
+#else
+    int x = GET_X_LPARAM(lParam);
+    int y = GET_Y_LPARAM(lParam);
+    int o = WM_SIZE == uMsg ? 0 : 4;
+    state[STATE__RES_X+o] = static_cast<GLfloat>(x);
+    state[STATE__RES_Y+o] = static_cast<GLfloat>(y);
+    if (!o)
+      glViewport(0, 0, x, y);
+#endif
+  }
+
+  #pragma code_seg(".update_mouse_buttons")
+  void MS_INLINE update_mouse_buttons(UINT uMsg) {
+    static_assert(WM_LBUTTONDOWN  == 0x201, "WM_LBUTTONDOWN");
+    static_assert(WM_LBUTTONUP    == 0x202, "WM_LBUTTONUP"  );
+    static_assert(WM_RBUTTONDOWN  == 0x204, "WM_RBUTTONDOWN");
+    static_assert(WM_RBUTTONUP    == 0x205, "WM_RBUTTONUP"  );
+    assert(uMsg >= 0x201 && uMsg <= 0x205);
+    assert(uMsg != 0x203);
+#ifdef APPLY_ASSEMBLER
+    __asm {
+      mov eax           , [uMsg]
+      sub eax           , 0x205
+      neg eax
+      // Needs to be cleared for div
+      xor edx           , edx
+      mov ecx           , 3
+      // divides edx+eax with ecx
+      //  Quotient in eax
+      //  Reminder in edx
+      div cx
+      // No need to sign extend because top 16 bit should be 0 from the sub ops before
+      //  and ax should always be positive
+      mov [mouse_buttons+eax] , dl
+    }
+#else
+    auto i = -(static_cast<int>(uMsg) - 0x205);
+    mouse_buttons[i/3] = i%3;
+#endif
+  }
   #pragma code_seg(".draw_game")
   __declspec(noinline) void draw_game(float time) {
     int const size  = sizeof(state)/sizeof(GLfloat);
@@ -373,27 +453,6 @@ extern "C" {
     glRects(-1, -1, 1, 1);
   }
 
-  #pragma code_seg(".update_mouse_buttons")
-  void __forceinline update_mouse_buttons(UINT uMsg) {
-    static_assert(WM_LBUTTONDOWN  == 0x201, "WM_LBUTTONDOWN");
-    static_assert(WM_LBUTTONUP    == 0x202, "WM_LBUTTONUP"  );
-    static_assert(WM_RBUTTONDOWN  == 0x204, "WM_RBUTTONDOWN");
-    static_assert(WM_RBUTTONUP    == 0x205, "WM_RBUTTONUP"  );
-    assert(uMsg >= 0x201 && uMsg <= 0x205);
-    assert(uMsg != 0x203);
-    __asm {
-      mov eax           , [uMsg]
-      sub eax           , 0x205
-      neg eax
-      xor edx           , edx
-      mov ecx           , 3
-      div cx
-      // No need to sign extend because top 16 bit should be 0 from the sub ops before
-      //  and ax should always be positive
-      mov [mouse_buttons+eax] , dl
-    }
-  }
-
   #pragma code_seg(".WndProc")
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -405,17 +464,7 @@ extern "C" {
       // Resized the window? No problem!
       case WM_SIZE:
       case WM_MOUSEMOVE:
-        {
-          static_assert(STATE__RES_X + 4 == STATE__MOUSE_X, "STATE__RES_X+4");
-          static_assert(STATE__RES_Y + 4 == STATE__MOUSE_Y, "STATE__RES_Y+4");
-          int x = GET_X_LPARAM(lParam);
-          int y = GET_Y_LPARAM(lParam);
-          int o = WM_MOUSEMOVE != uMsg ? 0 : 4;
-          state[STATE__RES_X+o] = static_cast<GLfloat>(x);
-          state[STATE__RES_Y+o] = static_cast<GLfloat>(y);
-          if (!o)
-            glViewport(0, 0, x, y);
-        }
+        update_res_and_mouse(uMsg, lParam);
         break;
       case WM_KEYDOWN:
       case WM_CHAR:

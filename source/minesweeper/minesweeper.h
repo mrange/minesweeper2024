@@ -18,6 +18,8 @@
 
 #define NOCRT
 
+//#define APPLY_ASSEMBLER
+
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 #define WINDOWS_IGNORE_PACKING_MISMATCH
@@ -61,8 +63,10 @@
 #ifdef _DEBUG
 #include "assert.h"
 #include <stdio.h>
+#define MS_INLINE __declspec(noinline)
 #else
 #define assert(x)
+#define MS_INLINE __forceinline
 #endif
 
 #include <math.h>
@@ -76,7 +80,6 @@
 #include "glext.h"
 
 #include "music.h"
-
 
 enum class cell_state {
   uncovered     = 0
