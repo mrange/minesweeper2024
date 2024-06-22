@@ -46,8 +46,17 @@
 #define SU_RESTART_POS  (SU_BUFFER_LENGTH/2)
 
 #define GAME_SPEED      1.F
-#define LBUTTON         1
-#define RBUTTON         0
+#define BTN__LEFT       1
+#define BTN__RIGHT      0
+
+#define STATE__RES_X        0
+#define STATE__RES_Y        1
+#define STATE__GAME_TIME    2
+#define STATE__BOARD_TIME   3
+#define STATE__MOUSE_X      4
+#define STATE__MOUSE_Y      5
+#define STATE__BOARD_SCORE  6
+#define STATE__REMAINING    7
 
 #ifdef _DEBUG
 #include "assert.h"
@@ -119,11 +128,8 @@ struct game {
 extern "C" {
   #pragma bss_seg(".mainbss")
   int                 _fltused                      ;
+  GLint               fragmentShaderProgram         ;
   uint32_t            lcg_state                     ;
-  int                 res_x                         ;
-  int                 res_y                         ;
-  int                 mouse_x                       ;
-  int                 mouse_y                       ;
   float               application_start_time        ;
   char                mouse_buttons_previous[2]     ;
   char                mouse_buttons[2]              ;
@@ -206,11 +212,8 @@ extern "C" {
   #pragma data_seg(".glUniform4fv")
   char const nm_glUniform4fv[] = "glUniform4fv";
 
-  #pragma data_seg(".fragmentShaderProgram")
-  GLint fragmentShaderProgram;
-
   #pragma data_seg(".fragmentShaders")
-  char const * fragmentShaders[] = {
+  char const * const fragmentShaders[] = {
     #include "shader.inl"
   };
 

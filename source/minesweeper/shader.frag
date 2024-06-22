@@ -203,16 +203,16 @@ float hash(vec2 co) {
 
 void main() {
   vec2
-      res = state[0].yz
-    , p   = (-res+2*gl_FragCoord.xy)/res.yy
-    , mp  = (-res+2*state[1].xy)/res.yy
+      res = state[0].xy
+    , p   = (2*gl_FragCoord.xy-res)/res.yy
+    , mp  = (2*state[1].xy-res)/res.yy
     , p0  = p
     , cp  = p
     , tcp = p
     ;
 
   float
-      atm = state[0].x/2
+      atm = state[0].z/2
     , gtm = state[0].w
     , aa  = sqrt(2) / res.y
     , caa = aa/cz

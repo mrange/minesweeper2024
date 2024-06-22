@@ -166,10 +166,6 @@ extern "C" {
   __declspec(noinline) void draw_game(float time) {
     int const size  = sizeof(state)/sizeof(GLfloat);
     auto g_t        = GAME_SPEED*(time-game.start_time);
-    auto r_x        = static_cast<GLfloat>(res_x);
-    auto r_y        = static_cast<GLfloat>(res_y);
-    auto m_x        = static_cast<GLfloat>(mouse_x);
-    auto m_y        = static_cast<GLfloat>(mouse_y);
 
     auto cf         = (g_t-game.lock_time)/CLEAR_DEADLINE;
     cf              = cf > 1.F ? 1.F : cf;
@@ -181,19 +177,13 @@ extern "C" {
     }
 
     // Setup state
-    GLfloat* s  = state;
-    *s++        = GAME_SPEED*(time-application_start_time);
-    *s++        = r_x;
-    *s++        = r_y;
-    *s++        = g_t;
-    *s++        = m_x;
-    *s++        = r_y-m_y;
-    *s++        = cs ;
-    *s++        = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
-    assert(s == state+4*STATE_SIZE);
+    state[STATE__GAME_TIME  ] = GAME_SPEED*(time-application_start_time);
+    state[STATE__BOARD_TIME ] = g_t;
+    state[STATE__BOARD_SCORE] = cs ;
+    state[STATE__REMAINING  ] = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
 
-    auto mp_x   = (2.F*m_x-res_x)/res_y;
-    auto mp_y   = (res_y-2.F*m_y)/res_y;
+    auto mp_y   = (state[STATE__RES_Y]-2.F*state[STATE__MOUSE_Y])/state[STATE__RES_Y];
+    auto mp_x   = (2.F*state[STATE__MOUSE_X]-state[STATE__RES_X])/state[STATE__RES_Y];
 
     auto mcp_x  = mp_x;
     auto mcp_y  = mp_y;
@@ -246,7 +236,7 @@ extern "C" {
       if (cell.state == cell.next_state && game.game_state == game_state::playing) {
         // React on mouse click if state is up to date and we are playing
 
-        if (!mouse_buttons[LBUTTON] && mouse_buttons_previous[LBUTTON]) {
+        if (!mouse_buttons[BTN__LEFT] && mouse_buttons_previous[BTN__LEFT]) {
           // Left button released
           switch (cell.state) {
             case cell_state::uncovered:
@@ -279,7 +269,7 @@ extern "C" {
           }
         }
 
-        if (!mouse_buttons[RBUTTON] && mouse_buttons_previous[RBUTTON]) {
+        if (!mouse_buttons[BTN__RIGHT] && mouse_buttons_previous[BTN__RIGHT]) {
           // Right button released
           switch (cell.state) {
             case cell_state::covered_empty:
@@ -361,7 +351,7 @@ extern "C" {
     mouse_buttons_previous[1] = mouse_buttons[1];
 
     //  Jump to first cell
-    s           = state+4*STATE_SIZE;
+    auto s = state+4*STATE_SIZE;
     // Setup cells
     for (auto & cell : game.board.cells) {
       *s++ = cell.state           != cell_state::uncovered ? static_cast<GLfloat>(cell.state) : static_cast<GLfloat>(-cell.near_bombs);
@@ -414,9 +404,18 @@ extern "C" {
         return 0;
       // Resized the window? No problem!
       case WM_SIZE:
-        res_x = LOWORD(lParam);
-        res_y = HIWORD(lParam);
-        glViewport(0, 0, res_x, res_y);
+      case WM_MOUSEMOVE:
+        {
+          static_assert(STATE__RES_X + 4 == STATE__MOUSE_X, "STATE__RES_X+4");
+          static_assert(STATE__RES_Y + 4 == STATE__MOUSE_Y, "STATE__RES_Y+4");
+          int x = GET_X_LPARAM(lParam);
+          int y = GET_Y_LPARAM(lParam);
+          int o = WM_MOUSEMOVE != uMsg ? 0 : 4;
+          state[STATE__RES_X+o] = static_cast<GLfloat>(x);
+          state[STATE__RES_Y+o] = static_cast<GLfloat>(y);
+          if (!o)
+            glViewport(0, 0, x, y);
+        }
         break;
       case WM_KEYDOWN:
       case WM_CHAR:
@@ -439,11 +438,6 @@ extern "C" {
           return 0;
         break;
 */
-      // Mouse moved
-      case WM_MOUSEMOVE:
-        mouse_x = GET_X_LPARAM(lParam);
-        mouse_y = GET_Y_LPARAM(lParam);
-        break;
       // Capture mouse buttons
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
@@ -451,7 +445,7 @@ extern "C" {
       case WM_RBUTTONUP:
         update_mouse_buttons(uMsg);
 #ifdef _DEBUG
-        printf("button state: %d(%d),%d(%d)\n", mouse_buttons[LBUTTON], mouse_buttons_previous[LBUTTON], mouse_buttons[RBUTTON], mouse_buttons_previous[RBUTTON]);
+        printf("button state: %d(%d),%d(%d)\n", mouse_buttons[BTN__LEFT], mouse_buttons_previous[BTN__LEFT], mouse_buttons[BTN__RIGHT], mouse_buttons_previous[BTN__RIGHT]);
 #endif
         break;
       case MM_WOM_DONE:
