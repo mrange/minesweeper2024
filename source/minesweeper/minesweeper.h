@@ -18,7 +18,7 @@
 
 #define NOCRT
 
-//#define APPLY_ASSEMBLER
+#define APPLY_ASSEMBLER
 
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
@@ -59,6 +59,8 @@
 #define STATE__MOUSE_Y      5
 #define STATE__BOARD_SCORE  6
 #define STATE__REMAINING    7
+
+#define MS_NOINLINE __declspec(noinline)
 
 #ifdef _DEBUG
 #include "assert.h"

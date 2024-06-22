@@ -185,13 +185,12 @@ extern "C" {
       not         eax
       // Offset depending on message
       and         eax,0x10
-      lea         esi,[state+eax];
       push        edx
       fild        [esp]
-      fstp        [esi+4]
+      fstp        [state+eax+4]
       push        ecx
       fild        [esp]
-      fstp        [esi]
+      fstp        [state+eax]
       test eax, eax
       jnz         wm_mousemove
       // eax is 0
@@ -223,18 +222,12 @@ extern "C" {
     assert(uMsg != 0x203);
 #ifdef APPLY_ASSEMBLER
     __asm {
-      mov eax           , [uMsg]
-      sub eax           , 0x205
-      neg eax
-      // Needs to be cleared for div
-      xor edx           , edx
-      mov ecx           , 3
-      // divides edx+eax with ecx
-      //  Quotient in eax
-      //  Reminder in edx
-      div cx
-      // No need to sign extend because top 16 bit should be 0 from the sub ops before
-      //  and ax should always be positive
+      mov eax                 , 0x205
+      sub eax                 , [uMsg]
+      push 3
+      pop ecx
+      cdq
+      div ecx
       mov [mouse_buttons+eax] , dl
     }
 #else
