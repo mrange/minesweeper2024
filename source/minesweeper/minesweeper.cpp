@@ -177,8 +177,8 @@ extern "C" {
       movsx       edx,ax
       mov         eax,[uMsg]
 
-      // Is mousemove?
-      sub         eax,0x200
+      // More than 5? Then mousemove
+      sub         eax,0x10
       // eax is 0 if so
       sbb         eax,eax
       // but flip its
