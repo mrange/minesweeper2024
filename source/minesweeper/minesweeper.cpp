@@ -39,14 +39,14 @@ extern "C" {
 #endif
 
   #pragma code_seg(".lcg_rand_uint32")
-  __declspec(noinline) uint32_t lcg_rand_uint32(uint32_t exclusive_max) {
+  uint32_t MS_NOINLINE lcg_rand_uint32(uint32_t exclusive_max) {
     lcg_state = (1664525U * lcg_state + 1013904223U);
     uint64_t v = static_cast<uint64_t>(lcg_state)*exclusive_max;
     return static_cast<uint32_t>(v >> 32);
   }
 
   #pragma code_seg(".reset_board")
-  __declspec(noinline) void reset_board(float time) {
+  void MS_NOINLINE reset_board(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_BOARD 0x2254
@@ -140,7 +140,7 @@ extern "C" {
   }
 
   #pragma code_seg(".reset_game")
-  __declspec(noinline) void reset_game(float time) {
+  void MS_INLINE reset_game(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_GAME 0x2270
@@ -236,7 +236,7 @@ extern "C" {
 #endif
   }
   #pragma code_seg(".draw_game")
-  __declspec(noinline) void draw_game(float time) {
+  void MS_NOINLINE draw_game(float time) {
     int const size  = sizeof(state)/sizeof(GLfloat);
     auto g_t        = GAME_SPEED*(time-game.start_time);
 
@@ -459,6 +459,7 @@ extern "C" {
       case WM_MOUSEMOVE:
         update_res_and_mouse(uMsg, lParam);
         break;
+#ifndef NO_KEY_TEST
       case WM_KEYDOWN:
       case WM_CHAR:
         // Done on Escape
@@ -473,6 +474,7 @@ extern "C" {
 #endif
         }
         break;
+#endif
 /*
       // To be ignored
       case WM_SYSCOMMAND:
