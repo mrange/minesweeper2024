@@ -114,14 +114,14 @@ extern "C" {
     } while (--y >= 0);
 
     for(;;) {
-      auto x0 = lcg_rand_uint32(CELLS/2);
-      auto y0 = lcg_rand_uint32(CELLS/2);
+      int j = 3;
+      uint32_t rnds[4];
+      do {
+        rnds[j] = lcg_rand_uint32(CELLS/2);
+      } while (--j >= 0);
 
-      auto x1 = lcg_rand_uint32(1+CELLS/2);
-      auto y1 = lcg_rand_uint32(1+CELLS/2);
-
-      auto x = x0+x1;
-      auto y = y0+y1;
+      auto x = rnds[0]+rnds[1];
+      auto y = rnds[2]+rnds[3];
       assert(x >= 0);
       assert(x < CELLS);
       assert(y >= 0);
