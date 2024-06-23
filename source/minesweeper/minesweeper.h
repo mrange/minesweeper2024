@@ -25,6 +25,7 @@
 #define APPLY_ASSEMBLER
 #define NO_KEY_TEST
 #define NO_SYS_COMMAND
+#define NO_WAVHDR_PREPARE
 
 #define LCG_A       1664525
 #define LCG_C       1013904223
@@ -139,7 +140,6 @@ extern "C" {
   char                mouse_buttons[2]              ;
   struct game         game                          ;
   GLfloat             state[TOTAL_STATE]            ;
-  WAVEHDR             waveHeader                    ;
   SUsample            waveBuffer[SU_BUFFER_LENGTH]  ;
 
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -179,6 +179,23 @@ extern "C" {
     , 0                                                       // dwLayerMask
     , 0                                                       // dwVisibleMask
     , 0                                                       // dwDamageMask
+  };
+
+  #pragma data_seg(".waveHeader")
+  WAVEHDR waveHeader =
+  {
+    reinterpret_cast<LPSTR>(waveBuffer)   // lpData
+  , SU_BUFFER_LENGTH * sizeof(SUsample)   // dwBufferLength
+  , 0                                     // dwBytesRecorded
+  , 0                                     // dwUser
+#ifdef NO_WAVHDR_PREPARE
+  , WHDR_PREPARED                         // dwFlags
+#else
+  , 0                                     // dwFlags
+#endif
+  , 0                                     // dwLoops
+  , 0                                     // lpNext
+  , 0                                     // reserved
   };
 
   #pragma data_seg(".windowClassSpecification")

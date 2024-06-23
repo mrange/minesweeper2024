@@ -640,15 +640,14 @@ int __cdecl main() {
   );
   assert(waveOpenOk == MMSYSERR_NOERROR);
 
-  waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer);
-  waveHeader.dwBufferLength = (SU_BUFFER_LENGTH) * sizeof(SUsample);
-
+#ifndef NO_WAVHDR_PREPARE
   auto wavePrepareOk = waveOutPrepareHeader(
     waveOut
   , &waveHeader
   , sizeof(waveHeader)
   );
   assert(wavePrepareOk == MMSYSERR_NOERROR);
+#endif
 
   auto waveWriteOk = waveOutWrite(
     waveOut
