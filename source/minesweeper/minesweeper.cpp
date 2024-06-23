@@ -38,10 +38,10 @@ extern "C" {
   char debugLog[0xFFFF];
 #endif
 
-  #pragma code_seg(".lcg_rand_uint32")
-  uint32_t MS_NOINLINE lcg_rand_uint32(uint32_t exclusive_max) {
+  #pragma code_seg(".lcg_rand_uint32_12")
+  uint32_t MS_NOINLINE lcg_rand_uint32_12() {
     lcg_state = (1664525U * lcg_state + 1013904223U);
-    uint64_t v = static_cast<uint64_t>(lcg_state)*exclusive_max;
+    uint64_t v = static_cast<uint64_t>(lcg_state)*CELLS;
     return static_cast<uint32_t>(v >> 32);
   }
 
@@ -64,8 +64,8 @@ extern "C" {
 
     auto remaining_bombs = BOMBS_PER_BOARD;
     do {
-      auto x = lcg_rand_uint32(CELLS);
-      auto y = lcg_rand_uint32(CELLS);
+      auto x = lcg_rand_uint32_12();
+      auto y = lcg_rand_uint32_12();
       auto i = CELLS*y+x;
       assert(i >= 0);
       assert(i < CELLS*CELLS);
@@ -114,14 +114,9 @@ extern "C" {
     } while (--y >= 0);
 
     for(;;) {
-      auto x0 = lcg_rand_uint32(CELLS/2);
-      auto y0 = lcg_rand_uint32(CELLS/2);
+      auto x = lcg_rand_uint32_12();
+      auto y = lcg_rand_uint32_12();
 
-      auto x1 = lcg_rand_uint32(1+CELLS/2);
-      auto y1 = lcg_rand_uint32(1+CELLS/2);
-
-      auto x = x0+x1;
-      auto y = y0+y1;
       assert(x >= 0);
       assert(x < CELLS);
       assert(y >= 0);
