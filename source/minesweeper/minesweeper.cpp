@@ -231,8 +231,7 @@ extern "C" {
 #endif
   }
   #pragma code_seg(".draw_game")
-  void MS_NOINLINE draw_game(float game_time) {
-    int const size    = sizeof(state)/sizeof(GLfloat);
+  void MS_NOINLINE game_step(float game_time) {
     auto board_time   = GAME_SPEED*(game_time-game.start_time);
 
     auto clear_factor = (board_time-game.lock_time)/CLEAR_DEADLINE;
@@ -428,17 +427,6 @@ extern "C" {
       *s++ = cell.mouse_time      ;
     }
     assert(s == state + TOTAL_STATE);
-
-    // Use the previously compiled shader program
-    ((PFNGLUSEPROGRAMPROC)wglGetProcAddress(nm_glUseProgram))(fragmentShaderProgram);
-    // Sets shader parameters
-    ((PFNGLUNIFORM4FVPROC)wglGetProcAddress(nm_glUniform4fv))(
-        0 // Uniform location
-      , size
-      , state
-      );
-    // Draws a rect over the entire window with fragment shader providing the gfx
-    glRects(-1, -1, 1, 1);
   }
 
   #pragma code_seg(".WndProc")
@@ -604,7 +592,7 @@ int __cdecl main() {
 #endif
 
   // Compiles the provided fragment shader into a shader program
-  fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
+  auto fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
 
 #ifdef _DEBUG
   ((PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog"))(fragmentShaderProgram, sizeof(debugLog), NULL, debugLog);
@@ -721,10 +709,20 @@ int __cdecl main() {
         break;
     }
 
-    // Windows message handling done, let's draw some gfx
+    // Update game state
+    game_step(time);
 
-    // Draw the game
-    draw_game(time);
+    // Use the previously compiled shader program
+    ((PFNGLUSEPROGRAMPROC)wglGetProcAddress(nm_glUseProgram))(fragmentShaderProgram);
+    // Sets shader parameters
+    ((PFNGLUNIFORM4FVPROC)wglGetProcAddress(nm_glUniform4fv))(
+        0 // Uniform location
+      , sizeof(state)/sizeof(GLfloat)
+      , state
+      );
+
+    // Draws a rect over the entire window with fragment shader providing the gfx
+    glRects(-1, -1, 1, 1);
 
     // Swap the buffers to present the gfx
     auto swapOk = SwapBuffers(hdc);

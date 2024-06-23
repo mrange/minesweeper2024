@@ -134,7 +134,6 @@ struct game {
 extern "C" {
   #pragma bss_seg(".mainbss")
   int                 _fltused                      ;
-  GLint               fragmentShaderProgram         ;
   uint32_t            lcg_state                     ;
   char                mouse_buttons_previous[2]     ;
   char                mouse_buttons[2]              ;
