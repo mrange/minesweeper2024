@@ -351,7 +351,7 @@ extern "C" {
                 ;
               break;
           }
-          
+
         }
       } else if (!mouse_buttons[BTN__RIGHT] && mouse_buttons_previous[BTN__RIGHT] && game.game_state == game_state::game_over) {
         game.game_state     = game_state::resetting_game;

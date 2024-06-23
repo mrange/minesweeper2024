@@ -25,7 +25,7 @@ const int
 , STATE_SIZE  = 2
 ;
 
-const float 
+const float
   STATE_SLEEP = 1./8
 ;
 
@@ -156,9 +156,9 @@ vec3 digit(vec2 p, vec3 acol, vec3 icol, float aa, float n) {
   p2    = abs(p2);
 
   // Praying bit shift operations aren't TOO slow
-  vec3 scol = 
-      ((ddigits[int(floor(n))] & (1 << int(dot(vec2(1, -1)/sqrt(2), p2) > 0 ? (3+(sp.x+1)/2 + sp.y+1) : -n0))) == 0) 
-    ? icol 
+  vec3 scol =
+      ((ddigits[int(floor(n))] & (1 << int(dot(vec2(1, -1)/sqrt(2), p2) > 0 ? (3+(sp.x+1)/2 + sp.y+1) : -n0))) == 0)
+    ? icol
     : acol
     ;
 
@@ -220,11 +220,11 @@ void main() {
 
   tcp *= ts;
   tcp.y *= sty;
-  
+
   np += HCELLS;
 
   tcp /= tz;
- 
+
   fi = np.x+np.y*CELLS+STATE_SIZE;
 
   if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
@@ -274,7 +274,7 @@ void main() {
     vec3 ccol  = tanh(8*col)/8;
 
     for (int i = 0; i < 2; ++i) {
-      float 
+      float
         cs    = i == 0?c.y:c.x
       , m     = i == 0?1-sfo:sfo
       , gd    = abs(length(cp)-mfo/9)
