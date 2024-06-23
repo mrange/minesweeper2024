@@ -170,32 +170,32 @@ extern "C" {
 #ifdef APPLY_ASSEMBLER
     __asm {
       mov         eax,[lParam]
-      // edx is y
-      movsx       ecx,ax
-      shr         eax,10h
       // ecx is y
-      movsx       edx,ax
-      mov         eax,[uMsg]
+      movsx       ecx,ax
+      // eax is x
+      sar         eax,0x10
+      mov         edx,[uMsg]
 
-      // More than 5? Then mousemove
-      sub         eax,0x10
-      // eax is 0 if so
-      sbb         eax,eax
+      // Check is less than 0x10
+      sub         edx,0x10
+      // edx is 0 if so
+      sbb         edx,edx
       // but flip its
-      not         eax
+      not         edx
       // Offset depending on message
-      and         eax,0x10
-      push        edx
-      fild        [esp]
-      fstp        [state+eax+4]
+      and         edx,0x10
+      lea         esi,[state+edx];
       push        ecx
       fild        [esp]
-      fstp        [state+eax]
-      test eax, eax
+      fstp        [esi+4]
+      push        eax
+      fild        [esp]
+      fstp        [esi]
+      test edx, edx
       jnz         wm_mousemove
-      // eax is 0
-      push        eax
-      push        eax
+      // edx is 0
+      push        edx
+      push        edx
       call        glViewport
       sub         esp,8
   wm_mousemove:
