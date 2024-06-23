@@ -136,6 +136,8 @@ extern "C" {
 
   #pragma code_seg(".reset_game")
   void MS_INLINE reset_game(float time) {
+// If we are not listening for keys we don't need to reset board
+#ifndef NO_KEY_TEST
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_GAME 0x2270
@@ -149,6 +151,7 @@ extern "C" {
     #undef SZ_OF_GAME
 #else
     memset(&game, 0, sizeof(game));
+#endif
 #endif
     game.start_time = time;
     game.last_score = 1000.F;
