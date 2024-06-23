@@ -170,9 +170,9 @@ extern "C" {
 #ifdef APPLY_ASSEMBLER
     __asm {
       mov         eax,[lParam]
-      // ecx is y
+      // ecx is x
       movsx       ecx,ax
-      // eax is x
+      // eax is y
       sar         eax,0x10
       mov         edx,[uMsg]
 
@@ -185,10 +185,10 @@ extern "C" {
       // Offset depending on message
       and         edx,0x10
       lea         esi,[state+edx];
-      push        ecx
+      push        eax
       fild        [esp]
       fstp        [esi+4]
-      push        eax
+      push        ecx
       fild        [esp]
       fstp        [esi]
       test edx, edx

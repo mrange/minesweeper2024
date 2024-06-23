@@ -233,7 +233,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalOptions>/CRINKLER /TINYIMPORT /UNALIGNCODE /NOINITIALIZERS /UNSAFEIMPORT /PROGRESSGUI /OVERRIDEALIGNMENTS:8 /HASHTRIES:100 /COMPMODE:slow /ORDERTRIES:10000 /REPORT:REPORT.html  /RANGE:opengl32 /RANGE:winmm %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/CRINKLER /TINYIMPORT /UNALIGNCODE /NOINITIALIZERS /UNSAFEIMPORT /PROGRESSGUI /OVERRIDEALIGNMENTS:8 /HASHTRIES:100 /COMPMODE:slow /ORDERTRIES:20000 /REPORT:REPORT.html  /RANGE:opengl32 /RANGE:winmm %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
