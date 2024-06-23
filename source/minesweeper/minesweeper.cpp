@@ -22,7 +22,7 @@
 extern "C" {
 
 #ifdef _DEBUG
-  void APIENTRY debugCallback(
+  void APIENTRY debug_callback(
       GLenum          source
     , GLenum          type
     , GLuint          id
@@ -36,6 +36,38 @@ extern "C" {
     printf("\n");
   }
   char debugLog[0xFFFF];
+
+  void check_invariant() {
+    auto no_of_uncovered= 0;
+    auto no_of_bombs    = 0;
+    auto no_of_covered  = 0;
+    for (auto & cell : game.board.cells) {
+      if (cell.has_bomb) {
+        ++no_of_bombs;
+      }
+
+      switch(cell.state) {
+        case cell_state::covered_flag:
+        case cell_state::covered_empty:
+        case cell_state::uncovering:
+          ++no_of_covered;
+          break;
+        default:
+          ++no_of_uncovered;
+          break;
+      }
+    }
+
+    auto gp = &game;
+
+    switch(game.game_state) {
+      case game_state::playing:
+        assert(no_of_bombs                == BOMBS_PER_BOARD);
+        assert(CELLS*CELLS                == no_of_covered+no_of_uncovered);
+        assert(CELLS*CELLS-no_of_covered  == game.board.uncovered);
+        break;
+    }
+  }
 #endif
 
   #pragma code_seg(".lcg_rand_uint32_cells")
@@ -77,7 +109,8 @@ extern "C" {
       }
 
       cell.has_bomb = true;
-    } while (--remaining_bombs > 0);
+      --remaining_bombs;
+    } while (remaining_bombs > 0);
 
     auto y = CELLS-1;
     do {
@@ -106,7 +139,8 @@ extern "C" {
               auto & near_cell            = game.board.cells[near_i];
               cell.near_cells[near_cells] = &near_cell;
               ++near_cells;
-              if (near_cell.has_bomb) ++near_bombs;
+              if (near_cell.has_bomb)
+                ++near_bombs;
             }
             assert(near_cells <= 8);
           }
@@ -371,7 +405,7 @@ extern "C" {
             } else {
               ++game.board.uncovered;
               if (BOMBS_PER_BOARD + game.board.uncovered >= CELLS*CELLS) {
-                game.boards_cleared++;
+                ++game.boards_cleared;
                 auto new_score      = board_score+1000.F*game.boards_cleared;
                 game.lock_time      = board_time;
                 game.locked_score   = new_score*0.5F > game.locked_score ? new_score*0.5F : game.locked_score;
@@ -595,13 +629,13 @@ int __cdecl main() {
 
   // Init our game
   lcg_state = GetTickCount()+0x19740531U;
-//    lcg_state = 19740531;
+  // lcg_state = 19740531;
 
   // Bit of debugging info during debug builds
   //  Don't want to waste bytes on that in Release mode
 #ifdef _DEBUG
   glEnable(GL_DEBUG_OUTPUT);
-  ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debugCallback, 0);
+  ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debug_callback, 0);
 #endif
 
   // Compiles the provided fragment shader into a shader program
@@ -737,6 +771,10 @@ int __cdecl main() {
 
     // Draws a rect over the entire window with fragment shader providing the gfx
     glRects(-1, -1, 1, 1);
+
+#ifdef _DEBUG
+    check_invariant();
+#endif
 
   }
 
