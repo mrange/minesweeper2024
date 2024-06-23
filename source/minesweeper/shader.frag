@@ -145,23 +145,6 @@ float circle8(vec2 p, float r) {
   return pow(dot(p,p), 1./8)-r;
 }
 
-vec3 norm8(vec2 p, float r) {
-  vec2 p4 = p*p;
-  p4 *= p4;
-  float 
-    r8 = pow(r,8) 
-  , z8  = r8-dot(p4, p4)
-  , z   = pow(z8, 1./8);
-  if (z8 < 0) return vec3(0,0,1);
-  vec3 
-    cp = vec3(p, z)
-  , cp2 = cp*cp
-  , cp7 = cp2*cp2
-  ;
-  cp7 *= cp2*cp;
-  return normalize(cp7);
-}
-
 float segmentx(vec2 p, vec2 dim) {
   p.x = abs(p.x);
   float o = max(dim.x-dim.y, 0)/2;
@@ -227,8 +210,6 @@ void main() {
     , p3  = vec3(p, 0)
     , ro  = vec3(0,0,atm)
     , rd  = normalize(vec3(p,2))
-    , rd3 = normalize(p3-vec3(0,0,10))
-    , ld0 = normalize(vec3(2,3,3))
     ;
 
   for (int i = 1; i < 10; ++i) {
@@ -246,13 +227,12 @@ void main() {
       wc2 = vec2(wc2.y, -wc2.x);
 
     float
-        fo = smoothstep(-.7, 1., sin(.1*wp.z+atm+i+sign(rd.x)))
+        fo = smoothstep(-.7, 1., sin(wp.z/9+atm+i+sign(rd.x)))
       , wd  = abs(min(length(wc2+.5)-.5, length(wc2-.5)-.5))-.025
       ;
 
     col += palette(5E-2*tw+atm)*exp(-3E-3*tw*tw)*25E-4/max(abs(wd), 3E-3*fo)*fo;
   }
-
   cp = cp/cz-.5;
 
   tcp.x -= p.y/5-tcw*tr/2;
@@ -290,25 +270,18 @@ void main() {
         cts = c.z
       , mts = c.w
       , d1  = circle8(cp, .45)
+      , d2  = circle8(cp+tcw/5, .45)
       , mfo = smoothstep(mts+1./2, mts+1./8, gtm)
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
       ;
 
-    vec3
-        n     = norm8(cp, .45-1./80-mfo/40)
-      , ccol  = tanh(8*col)/8
-      ;
-
-    float 
-        fre = 1+dot(n, rd3)
-      , spe0 = pow(max(dot(ld0, reflect(rd3, n)), 0), 22)
-      ;
+    vec3 ccol  = tanh(8*col)/8;
 
     for (int i = 0; i < 2; ++i) {
       float 
         cs    = i == 0?c.y:c.x
       , m     = i == 0?1-sfo:sfo
-      , gd    = abs(length(cp)-.1*mfo)
+      , gd    = abs(length(cp)-mfo/9)
       ;
       vec2 bstate = bstates[int(cs)];
       for (float yy = 0; yy < bstate.y; ++yy) {
@@ -329,9 +302,8 @@ void main() {
           ccol += digit(fcp, acol, icol, faa, -cs);
         }
       } else {
-        ccol   = mix(ccol, scol,m*smoothstep(caa, -caa, d1));
+        ccol   = mix(ccol, scol, m*smoothstep(caa, -caa, d1));
       }
-      ccol += m*spe0*fre*4*step(1, cs);
     }
 
     col = mix(col, ccol, smoothstep(caa, -caa, d1));
