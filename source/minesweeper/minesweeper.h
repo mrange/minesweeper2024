@@ -26,6 +26,7 @@
 #define NO_KEY_TEST
 #define NO_SYS_COMMAND
 #define NO_WAVHDR_PREPARE
+//#define NO_SWAP_BUFFERS
 //#define NO_CHOOSE_PIXEL_FORMAT
 
 #define LCG_A       1664525
@@ -159,7 +160,11 @@ extern "C" {
   PIXELFORMATDESCRIPTOR pixelFormatSpecification {
       sizeof(PIXELFORMATDESCRIPTOR)                           // nSize
     , 1                                                       // nVersion
+#ifdef NO_SWAP_BUFFERS
     , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL                   // dwFlags
+#else
+    , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER  // dwFlags
+#endif
     , PFD_TYPE_RGBA                                           // iPixelType
     , 32                                                      // cColorBits
     , 0                                                       // cRedBits

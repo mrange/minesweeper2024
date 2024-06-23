@@ -602,7 +602,11 @@ int __cdecl main() {
   // Find a pixel format that is compatible with OpenGL
 #ifdef NO_CHOOSE_PIXEL_FORMAT
 //  auto pixelFormat = 8;
+#ifdef NO_SWAP_BUFFERS
   auto pixelFormat = 2;
+#else
+  auto pixelFormat = 10;
+#endif
 #else
   auto pixelFormat = ChoosePixelFormat(
     hdc
@@ -771,6 +775,11 @@ int __cdecl main() {
 
     // Draws a rect over the entire window with fragment shader providing the gfx
     glRects(-1, -1, 1, 1);
+
+#ifndef NO_SWAP_BUFFERS
+    auto swapOk = SwapBuffers(hdc);
+    assert(swapOk);
+#endif
 
 #ifdef _DEBUG
     check_invariant();
