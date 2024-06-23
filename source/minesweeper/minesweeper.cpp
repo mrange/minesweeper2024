@@ -45,8 +45,8 @@ extern "C" {
     return static_cast<uint32_t>(v >> 32);
   }
 
-  #pragma code_seg(".reset_board")
-  void MS_NOINLINE reset_board(float time) {
+  #pragma code_seg(".reset_board_part")
+  void MS_NOINLINE reset_board_part(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_BOARD 0x2254
@@ -136,32 +136,28 @@ extern "C" {
 
   }
 
-  #pragma code_seg(".reset_game")
-  void MS_INLINE reset_game(float time) {
-// If we are not listening for keys we don't need to reset board
-#ifndef NO_KEY_TEST
+  #pragma code_seg(".reset_game_part")
+  void MS_INLINE reset_game_part(float time) {
 #ifdef NOCRT
     // Well this is awkward
-    #define SZ_OF_GAME 0x2270
-    static_assert(SZ_OF_GAME == sizeof(game), "The sizeof(game) and SZ_OF_GAME must be the same");
+    #define SZ_OF_GAME 0x1C
+    static_assert(SZ_OF_GAME <= offsetof(game, board), "The offsetof(game, board) and SZ_OF_GAME must be the same");
     _asm {
-      LEA edi, [game]
-      XOR eax, eax
-      MOV ecx, SZ_OF_GAME
+      LEA   edi, [game]
+      XOR   eax, eax
+      // PUSH/POP is smaller than MOV as long as SZ_OF_GAME < 0x100
+      PUSH  SZ_OF_GAME
+      POP   ecx
       // Clear the DF flag but don't seem to be necessary
       // CLD
-      REP STOSB
+      REP   STOSB
     }
     #undef SZ_OF_GAME
 #else
-    memset(&game, 0, sizeof(game));
-#endif
+    memset(&game, 0, offsetof(game, board));
 #endif
     game.start_time = time;
     game.last_score = 1000.F;
-    game.game_state = game_state::playing;
-
-    reset_board(time);
   }
 
   #pragma code_seg(".update_res_and_mouse")
@@ -355,7 +351,10 @@ extern "C" {
                 ;
               break;
           }
+          
         }
+      } else if (!mouse_buttons[BTN__RIGHT] && mouse_buttons_previous[BTN__RIGHT] && game.game_state == game_state::game_over) {
+        game.game_state     = game_state::resetting_game;
       }
     }
 
@@ -377,7 +376,7 @@ extern "C" {
                 game.lock_time      = board_time;
                 game.locked_score   = new_score*0.5F > game.locked_score ? new_score*0.5F : game.locked_score;
                 game.last_score     = new_score;
-                game.game_state = game_state::resetting_board;
+                game.game_state     = game_state::resetting_board;
               }
               cell.next_state = cell_state::uncovered;
               if (cell.near_bombs == 0) {
@@ -710,15 +709,15 @@ int __cdecl main() {
 #ifdef _DEBUG
         printf("Resetting game with seed: 0x%x\n", lcg_state);
 #endif
-        reset_game(time);
-        break;
+        reset_game_part(time);
+        // Intentionally flows through to next state
       case game_state::resetting_board:
         // Useful for debugging potentially buggy boards
         //lcg_state = 0x1e0d6339;
 #ifdef _DEBUG
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
-        reset_board(time);
+        reset_board_part(time);
 
         game.game_state     = game_state::playing;
         break;

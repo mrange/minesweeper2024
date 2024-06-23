@@ -75,7 +75,8 @@
 #define MS_INLINE __forceinline
 #endif
 
-#include <math.h>
+#include <cstddef>
+#include <cmath>
 
 #include <windows.h>
 #include <winuser.h>
@@ -112,8 +113,8 @@ struct cell {
 
 enum class game_state {
   resetting_game  = 0
-, playing         = 1
-, resetting_board = 2
+, resetting_board = 1
+, playing         = 2
 , game_over       = 3
 };
 
