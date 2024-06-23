@@ -136,7 +136,6 @@ extern "C" {
   int                 _fltused                      ;
   GLint               fragmentShaderProgram         ;
   uint32_t            lcg_state                     ;
-  float               application_start_time        ;
   char                mouse_buttons_previous[2]     ;
   char                mouse_buttons[2]              ;
   struct game         game                          ;

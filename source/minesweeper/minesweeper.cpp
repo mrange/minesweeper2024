@@ -231,23 +231,23 @@ extern "C" {
 #endif
   }
   #pragma code_seg(".draw_game")
-  void MS_NOINLINE draw_game(float time) {
-    int const size  = sizeof(state)/sizeof(GLfloat);
-    auto g_t        = GAME_SPEED*(time-game.start_time);
+  void MS_NOINLINE draw_game(float game_time) {
+    int const size    = sizeof(state)/sizeof(GLfloat);
+    auto board_time   = GAME_SPEED*(game_time-game.start_time);
 
-    auto cf         = (g_t-game.lock_time)/CLEAR_DEADLINE;
-    cf              = cf > 1.F ? 1.F : cf;
-    auto cs         = game.last_score - cf*(game.last_score - game.locked_score);
+    auto clear_factor = (board_time-game.lock_time)/CLEAR_DEADLINE;
+    clear_factor      = clear_factor > 1.F ? 1.F : clear_factor;
+    auto board_score  = game.last_score - clear_factor*(game.last_score - game.locked_score);
 
     assert(game.game_state == game_state::playing || game.game_state == game_state::game_over);
     if (game.game_state == game_state::game_over) {
-      cs  = game.last_score;
+      board_score = game.last_score;
     }
 
     // Setup state
-    state[STATE__GAME_TIME  ] = GAME_SPEED*(time-application_start_time);
-    state[STATE__BOARD_TIME ] = g_t;
-    state[STATE__BOARD_SCORE] = cs ;
+    state[STATE__GAME_TIME  ] = GAME_SPEED*game_time;
+    state[STATE__BOARD_TIME ] = board_time;
+    state[STATE__BOARD_SCORE] = board_score;
     state[STATE__REMAINING  ] = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
 
     auto mp_y   = (state[STATE__RES_Y]-2.F*state[STATE__MOUSE_Y])/state[STATE__RES_Y];
@@ -299,7 +299,7 @@ extern "C" {
     if (mnp_x >= 0 && mnp_x < CELLS && mnp_y >= 0 && mnp_y < CELLS) {
       assert(ci >= 0 && ci < CELLS*CELLS);
       auto & cell = game.board.cells[ci];
-      cell.mouse_time = g_t;
+      cell.mouse_time = board_time;
 
       if (cell.state == cell.next_state && game.game_state == game_state::playing) {
         // React on mouse click if state is up to date and we are playing
@@ -353,8 +353,8 @@ extern "C" {
       }
     }
 
-    if (g_t >= game.next_state_advance) {
-      game.next_state_advance = g_t + STATE_SLEEP;
+    if (board_time >= game.next_state_advance) {
+      game.next_state_advance = board_time + STATE_SLEEP;
 
       for (auto & cell : game.board.cells) {
         switch (cell.state) {
@@ -362,13 +362,13 @@ extern "C" {
             if (cell.has_bomb) {
               cell.next_state = cell_state::exploding;
               game.game_state = game_state::game_over;
-              game.last_score = cs;
+              game.last_score = board_score;
             } else {
               ++game.board.uncovered;
               if (BOMBS_PER_BOARD + game.board.uncovered >= CELLS*CELLS) {
                 game.boards_cleared++;
-                auto new_score      = cs+1000.F*game.boards_cleared;
-                game.lock_time      = g_t;
+                auto new_score      = board_score+1000.F*game.boards_cleared;
+                game.lock_time      = board_time;
                 game.locked_score   = new_score*0.5F > game.locked_score ? new_score*0.5F : game.locked_score;
                 game.last_score     = new_score;
                 game.game_state = game_state::resetting_board;
@@ -410,7 +410,7 @@ extern "C" {
         if (cell.state != cell.next_state) {
           cell.prev_state   = cell.state;
           cell.state        = cell.next_state;
-          cell.changed_time = g_t;
+          cell.changed_time = board_time;
         }
       }
     }
@@ -522,7 +522,7 @@ void entrypoint() {
 #else
 int __cdecl main() {
 #endif
-  application_start_time = GetTickCount() / 1000.F;
+  auto app_start_time = GetTickCount() / 1000.F;
 
 /*
   auto dpiAware = SetProcessDPIAware();
@@ -671,7 +671,7 @@ int __cdecl main() {
 
 #ifdef _DEBUG
   auto frame_count  = 0.F;
-  auto next_report  = application_start_time+1.F;
+  auto next_report  = app_start_time+1.F;
 #endif
 
    auto done = false;
@@ -688,12 +688,12 @@ int __cdecl main() {
       DispatchMessageA(&msg);
     }
 
-    auto time = GetTickCount() / 1000.F;
+    auto time = (GetTickCount() / 1000.F) - app_start_time;
 
 #ifdef _DEBUG
     ++frame_count;
     if (time >= next_report) {
-      auto fps = frame_count/(time-application_start_time);
+      auto fps = frame_count/(time);
       printf("FPS:%f\n", fps);
       next_report = 1.F+time;
     }
