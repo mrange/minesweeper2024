@@ -55,6 +55,8 @@ extern "C" {
       LEA edi, [game.board]
       XOR eax, eax
       MOV ecx, SZ_OF_BOARD
+      // Clear the DF flag but don't seem to be necessary
+      // CLD
       REP STOSB
     }
     #undef SZ_OF_BOARD
@@ -146,6 +148,8 @@ extern "C" {
       LEA edi, [game]
       XOR eax, eax
       MOV ecx, SZ_OF_GAME
+      // Clear the DF flag but don't seem to be necessary
+      // CLD
       REP STOSB
     }
     #undef SZ_OF_GAME

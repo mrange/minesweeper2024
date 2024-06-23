@@ -70,7 +70,7 @@ vec2
     ddim        = vec2(.75, .075)
   , bstates[7]  = vec2[](
       vec2(0  ,0)
-    , vec2(.5 ,0)
+    , vec2(.5 ,1)
     , vec2(4  ,2)
     , vec2(10 ,1)
     , vec2(10 ,2)
