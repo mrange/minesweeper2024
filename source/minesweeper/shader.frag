@@ -131,12 +131,6 @@ vec3 palette(float a) {
   return 1+sin(vec3(-4,3,1)/2+a);
 }
 
-float circle8(vec2 p, float r) {
-  p *= p;
-  p *= p;
-  return pow(dot(p,p), 1./8)-r;
-}
-
 float segmentx(vec2 p, vec2 dim) {
   p.x = abs(p.x);
   float o = max(dim.x-dim.y, 0)/2;
@@ -186,6 +180,7 @@ void main() {
     , cp
     , np
     , tnp
+    , cp4
     ;
 
   float
@@ -220,6 +215,8 @@ void main() {
 
   tcp -= tnp;
   cp -= np;
+
+  cp4 = cp*cp*cp*cp;
 
   tcp *= ts;
   tcp.y *= sty;
@@ -269,7 +266,7 @@ void main() {
     float
         cts = c.z
       , mts = c.w
-      , d1  = circle8(cp, .45)
+      , d1  = pow(dot(cp4, cp4), 1./8)-0.45
       , mfo = smoothstep(mts+1./2, mts+1./8, gtm)
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
       ;
