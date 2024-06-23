@@ -155,7 +155,7 @@ extern "C" {
   PIXELFORMATDESCRIPTOR pixelFormatSpecification {
       sizeof(PIXELFORMATDESCRIPTOR)                           // nSize
     , 1                                                       // nVersion
-    , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER  // dwFlags
+    , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL                   // dwFlags
     , PFD_TYPE_RGBA                                           // iPixelType
     , 32                                                      // cColorBits
     , 0                                                       // cRedBits

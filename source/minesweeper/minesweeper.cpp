@@ -723,9 +723,6 @@ int __cdecl main() {
     // Draws a rect over the entire window with fragment shader providing the gfx
     glRects(-1, -1, 1, 1);
 
-    // Swap the buffers to present the gfx
-    auto swapOk = SwapBuffers(hdc);
-    assert(swapOk);
   }
 
   // We are done, just exit. No need to waste bytes on cleaning
