@@ -46,7 +46,7 @@ extern "C" {
   }
 
   #pragma code_seg(".reset_board_part")
-  void MS_NOINLINE reset_board_part(float time) {
+  void MS_INLINE reset_board_part(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_BOARD 0x2254
@@ -234,7 +234,7 @@ extern "C" {
 #endif
   }
   #pragma code_seg(".draw_game")
-  void MS_NOINLINE game_step(float game_time) {
+  void MS_INLINE game_step(float game_time) {
     auto board_time   = GAME_SPEED*(game_time-game.start_time);
 
     auto clear_factor = (board_time-game.lock_time)/CLEAR_DEADLINE;
