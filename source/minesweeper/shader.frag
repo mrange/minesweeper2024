@@ -131,14 +131,6 @@ vec3 palette(float a) {
   return 1+sin(vec3(-4,3,1)/2+a);
 }
 
-
-// License: MIT OR CC-BY-NC-4.0, author: mercury, found: https://mercury.sexy/hg_sdf/
-vec2 mod2(inout vec2 p, vec2 size) {
-  vec2 c = floor((p + size/2)/size);
-  p = mod(p + size/2,size) - size/2;
-  return c;
-}
-
 float circle8(vec2 p, float r) {
   p *= p;
   p *= p;
@@ -188,9 +180,12 @@ void main() {
   vec2
       res = state[0].xy
     , p   = (2*gl_FragCoord.xy-res)/res.yy
-    , p0  = p
-    , cp  = p
+    , ap  = abs(p)
     , tcp = p
+    , ts  = vec2(tr*tcw, tcw)
+    , cp
+    , np
+    , tnp
     ;
 
   float
@@ -203,6 +198,7 @@ void main() {
     , taa = aa/tz
     , faa = aa/(fz*cz)
     , sty = sign(tcp.y)
+    , fi
     ;
 
   vec3
@@ -212,7 +208,40 @@ void main() {
     , rd  = normalize(vec3(p,2))
     ;
 
-  for (int i = 1; i < 10; ++i) {
+  cp = p/cz-.5;
+
+  tcp.x -= p.y/5-tcw*tr/2;
+  tcp.y = abs(tcp.y)-.9;
+
+  tcp /= ts;
+
+  tnp = round(tcp);
+  np  = round(cp);
+
+  tcp -= tnp;
+  cp -= np;
+
+  tcp *= ts;
+  tcp.y *= sty;
+  
+  np += HCELLS;
+
+  tcp /= tz;
+ 
+  fi = np.x+np.y*CELLS+STATE_SIZE;
+
+  if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
+    float
+      v = sty < 0 ? rem : bs
+    , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
+    vec3
+        acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
+      , icol = acol*.075
+      ;
+    col += digit(tcp, acol, icol, taa, d);
+  }
+
+  for (int i = 1; i < 9; ++i) {
     float tw = -(ro.x-6*sqrt(i))/abs(rd).x;
 
     vec3 wp = ro+rd*tw;
@@ -233,44 +262,14 @@ void main() {
 
     col += palette(5E-2*tw+atm)*exp(-3E-3*tw*tw)*25E-4/max(abs(wd), 3E-3*fo)*fo;
   }
-  cp = cp/cz-.5;
 
-  tcp.x -= p.y/5-tcw*tr/2;
-  tcp.y = abs(tcp.y)-.9;
-
-  vec2
-      tnp = mod2(tcp, vec2(tr*tcw, tcw))
-    , np = round(cp)
-    ;
-  tcp.y *= sty;
-  cp -= np;
-  np += HCELLS;
-
-  tcp /= tz;
-
-  float 
-      fi = np.x+np.y*CELLS+STATE_SIZE
-    ;
-
-  if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
-    float
-      v = sty < 0 ? rem : bs
-    , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
-    vec3
-        acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
-      , icol = acol*.075
-      ;
-    col += digit(tcp, acol, icol, taa, d);
-  }
-
-  if (max(abs(p0).x, abs(p0).y) < BORDER_DIM) {
+  if (max(ap.x, ap.y) < BORDER_DIM) {
     vec4 c = state[int(fi)];
 
     float
         cts = c.z
       , mts = c.w
       , d1  = circle8(cp, .45)
-      , d2  = circle8(cp+tcw/5, .45)
       , mfo = smoothstep(mts+1./2, mts+1./8, gtm)
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
       ;
