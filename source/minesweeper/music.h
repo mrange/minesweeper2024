@@ -34,8 +34,6 @@ typedef float SUsample;
 extern "C" {
 #endif
 void SU_CALLCONV su_render_song(SUsample *buffer);
-void SU_CALLCONV su_load_gmdls();
-#define SU_LOAD_GMDLS
 
 
 #ifdef __cplusplus

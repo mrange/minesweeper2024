@@ -609,6 +609,7 @@ int __cdecl main() {
   //  to a wave buffer
   //  Then we just ask Windows to play it for us
 
+#ifdef LOAD_GMDLS
   // Version v0.3.0 of sointu has an issue in that the EBX register is not restored
   //  So save it with some inline assembler
   //  Fix coming: https://github.com/vsariola/sointu/issues/130
@@ -621,6 +622,7 @@ int __cdecl main() {
   _asm {
     pop ebx
   }
+#endif
 
 #ifdef USE_SOUND_THREAD
   // Create the wave buffer in a separate thread so we don't have to wait for it

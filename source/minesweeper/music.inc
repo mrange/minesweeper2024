@@ -23,7 +23,5 @@ _su_symbols:
 %else ; MANGLED
     extern su_render_song
 %endif ; MANGLED
-	extern _su_load_gmdls
-%define SU_LOAD_GMDLS
 
 %endif ; PLAYER_INC

@@ -35,6 +35,7 @@
 #define YRES        900
 
 #define INIT_MUSIC
+//#define LOAD_GMDLS
 #define USE_SOUND_THREAD
 
 #define CELLS           12
