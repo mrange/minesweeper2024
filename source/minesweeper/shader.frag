@@ -205,7 +205,6 @@ void main() {
   vec2
       res = state[0].xy
     , p   = (2*gl_FragCoord.xy-res)/res.yy
-    , mp  = (2*state[1].xy-res)/res.yy
     , p0  = p
     , cp  = p
     , tcp = p
@@ -213,7 +212,9 @@ void main() {
 
   float
       atm = state[0].z/2
+    , bs  = state[1].z
     , gtm = state[0].w
+    , rem = state[1].w
     , aa  = sqrt(2) / res.y
     , caa = aa/cz
     , taa = aa/tz
@@ -224,13 +225,10 @@ void main() {
   vec3
       col = vec3(0)
     , p3  = vec3(p, 0)
-    , mp3 = vec3(mp, 1)
     , ro  = vec3(0,0,atm)
     , rd  = normalize(vec3(p,2))
     , rd3 = normalize(p3-vec3(0,0,10))
-    , ld3 = normalize(mp3-p3)
     , ld0 = normalize(vec3(2,3,3))
-    , mouseCol  = sqrt(palette(atm))
     ;
 
   for (int i = 1; i < 10; ++i) {
@@ -272,12 +270,11 @@ void main() {
 
   float 
       fi = np.x+np.y*CELLS+STATE_SIZE
-    , ml = length(mp-p)
     ;
 
   if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
     float
-      v = sty < 0 ? state[1].w : state[1].z
+      v = sty < 0 ? rem : bs
     , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
     vec3
         acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
@@ -295,7 +292,6 @@ void main() {
       , d1  = circle8(cp, .45)
       , mfo = smoothstep(mts+1./2, mts+1./8, gtm)
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
-      , bfo = exp(-2*fract(gtm-ml*ml/8))
       ;
 
     vec3
@@ -306,14 +302,13 @@ void main() {
     float 
         fre = 1+dot(n, rd3)
       , spe0 = pow(max(dot(ld0, reflect(rd3, n)), 0), 22)
-      , spe3 = pow(max(dot(ld3, reflect(rd3, n)), 0), 44)
       ;
 
     for (int i = 0; i < 2; ++i) {
       float 
         cs    = i == 0?c.y:c.x
       , m     = i == 0?1-sfo:sfo
-      , gd    = abs(length(cp)-.1*max(mfo, bfo))
+      , gd    = abs(length(cp)-.1*mfo)
       ;
       vec2 bstate = bstates[int(cs)];
       for (float yy = 0; yy < bstate.y; ++yy) {
@@ -336,14 +331,13 @@ void main() {
       } else {
         ccol   = mix(ccol, scol,m*smoothstep(caa, -caa, d1));
       }
-      ccol += m*(spe0/4+spe3*mouseCol)*fre*16*step(1, cs);
+      ccol += m*spe0*fre*4*step(1, cs);
     }
 
     col = mix(col, ccol, smoothstep(caa, -caa, d1));
     col = mix(col, mix(palette(3.+p.y)/4,vec3(1), mfo), smoothstep(caa, -caa, abs(d1)-1./80));
   }
 
-//  col += mouseCol*(1E-3/max(ml, 1E-3));
 
   fcol = vec4(sqrt(tanh(col)), 1);
 }
