@@ -498,16 +498,17 @@ extern "C" {
     )
   {
     if (uMsg != WOM_DONE) return;
-      waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
-      waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
-      waveHeader.dwFlags        &= ~WHDR_DONE;
 
-      auto waveWriteOk = waveOutWrite(
-        hwo
-      , &waveHeader
-      , sizeof(waveHeader)
-      );
-      assert(waveWriteOk == MMSYSERR_NOERROR);
+    waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
+    waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
+    waveHeader.dwFlags        &= ~WHDR_DONE;
+
+    auto waveWriteOk = waveOutWrite(
+      hwo
+    , &waveHeader
+    , sizeof(waveHeader)
+    );
+    assert(waveWriteOk == MMSYSERR_NOERROR);
   }
 }
 
@@ -564,12 +565,18 @@ int __cdecl main() {
   auto hdc = GetDC(hwnd);
   assert(hdc);
 
+
   // Find a pixel format that is compatible with OpenGL
+#ifdef NO_CHOOSE_PIXEL_FORMAT
+//  auto pixelFormat = 8;
+  auto pixelFormat = 2;
+#else
   auto pixelFormat = ChoosePixelFormat(
     hdc
   , &pixelFormatSpecification
   );
   assert(pixelFormat);
+#endif
 
   // Set the pixel format on the Device Context to prepare it for OpenGL
   auto setOk = SetPixelFormat(

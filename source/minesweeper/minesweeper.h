@@ -26,6 +26,7 @@
 #define NO_KEY_TEST
 #define NO_SYS_COMMAND
 #define NO_WAVHDR_PREPARE
+//#define NO_CHOOSE_PIXEL_FORMAT
 
 #define LCG_A       1664525
 #define LCG_C       1013904223
@@ -152,6 +153,7 @@ extern "C" {
   , 0
   };
 
+#ifndef NO_CHOOSE_PIXEL_FORMAT
   #pragma data_seg(".pixelFormatDescriptor")
   PIXELFORMATDESCRIPTOR pixelFormatSpecification {
       sizeof(PIXELFORMATDESCRIPTOR)                           // nSize
@@ -181,6 +183,7 @@ extern "C" {
     , 0                                                       // dwVisibleMask
     , 0                                                       // dwDamageMask
   };
+#endif
 
   #pragma data_seg(".waveHeader")
   WAVEHDR waveHeader =
