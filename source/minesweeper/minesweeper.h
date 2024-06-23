@@ -16,16 +16,15 @@
 
 #pragma once
 
-#define NOCRT
-
-#define APPLY_ASSEMBLER
-
-#define NO_KEY_TEST
-
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 #define WINDOWS_IGNORE_PACKING_MISMATCH
 #define SHADER_MINIFIER_IMPL
+
+#define NOCRT
+#define APPLY_ASSEMBLER
+#define NO_KEY_TEST
+#define NO_SYS_COMMAND
 
 #define LCG_A       1664525
 #define LCG_C       1013904223
@@ -142,7 +141,6 @@ extern "C" {
   char                mouse_buttons[2]              ;
   struct game         game                          ;
   GLfloat             state[TOTAL_STATE]            ;
-  HWAVEOUT            waveOut                       ;
   WAVEHDR             waveHeader                    ;
   SUsample            waveBuffer[SU_BUFFER_LENGTH]  ;
 

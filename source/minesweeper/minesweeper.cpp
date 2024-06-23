@@ -470,13 +470,13 @@ extern "C" {
         }
         break;
 #endif
-/*
+#ifndef NO_SYS_COMMAND
       // To be ignored
       case WM_SYSCOMMAND:
         if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER)
           return 0;
         break;
-*/
+#endif
       // Capture mouse buttons
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
@@ -487,24 +487,32 @@ extern "C" {
         printf("button state: %d(%d),%d(%d)\n", mouse_buttons[BTN__LEFT], mouse_buttons_previous[BTN__LEFT], mouse_buttons[BTN__RIGHT], mouse_buttons_previous[BTN__RIGHT]);
 #endif
         break;
-      case MM_WOM_DONE:
-        {
-          waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
-          waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
-          waveHeader.dwFlags        &= ~WHDR_DONE;
-
-          auto waveWriteOk = waveOutWrite(
-            waveOut
-          , &waveHeader
-          , sizeof(waveHeader)
-          );
-          assert(waveWriteOk == MMSYSERR_NOERROR);
-        }
-        break;
     }
 
     // Apply default window message handling
     return(DefWindowProcA(hWnd, uMsg, wParam, lParam));
+  }
+
+  #pragma code_seg(".WndProc")
+  void CALLBACK waveOutProc(
+      HWAVEOUT  hwo
+    , UINT      uMsg
+    , DWORD_PTR dwInstance
+    , DWORD_PTR dwParam1
+    , DWORD_PTR dwParam2
+    )
+  {
+    if (uMsg != WOM_DONE) return;
+      waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
+      waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
+      waveHeader.dwFlags        &= ~WHDR_DONE;
+
+      auto waveWriteOk = waveOutWrite(
+        hwo
+      , &waveHeader
+      , sizeof(waveHeader)
+      );
+      assert(waveWriteOk == MMSYSERR_NOERROR);
   }
 }
 
@@ -633,13 +641,14 @@ int __cdecl main() {
 #endif
 #endif
 
+  HWAVEOUT waveOut;
   auto waveOpenOk = waveOutOpen(
     &waveOut
   , WAVE_MAPPER
   , &waveFormatSpecification
-  , reinterpret_cast<DWORD_PTR>(hwnd)
+  , reinterpret_cast<DWORD_PTR>(&waveOutProc)
   , 0
-  , CALLBACK_WINDOW
+  , CALLBACK_FUNCTION
   );
   assert(waveOpenOk == MMSYSERR_NOERROR);
 
