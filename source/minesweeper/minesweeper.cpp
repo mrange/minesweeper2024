@@ -520,29 +520,6 @@ extern "C" {
     // Apply default window message handling
     return(DefWindowProcA(hWnd, uMsg, wParam, lParam));
   }
-
-  #pragma code_seg(".WndProc")
-  void CALLBACK waveOutProc(
-      HWAVEOUT  hwo
-    , UINT      uMsg
-    , DWORD_PTR dwInstance
-    , DWORD_PTR dwParam1
-    , DWORD_PTR dwParam2
-    )
-  {
-    if (uMsg != WOM_DONE) return;
-
-    waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
-    waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
-    waveHeader.dwFlags        &= ~WHDR_DONE;
-
-    auto waveWriteOk = waveOutWrite(
-      hwo
-    , &waveHeader
-    , sizeof(waveHeader)
-    );
-    assert(waveWriteOk == MMSYSERR_NOERROR);
-  }
 }
 
 #pragma code_seg(".main")
@@ -687,9 +664,9 @@ int __cdecl main() {
     &waveOut
   , WAVE_MAPPER
   , &waveFormatSpecification
-  , reinterpret_cast<DWORD_PTR>(&waveOutProc)
   , 0
-  , CALLBACK_FUNCTION
+  , 0
+  , CALLBACK_NULL
   );
   assert(waveOpenOk == MMSYSERR_NOERROR);
 
