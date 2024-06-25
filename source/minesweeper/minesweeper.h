@@ -194,18 +194,18 @@ extern "C" {
   #pragma data_seg(".waveHeader")
   WAVEHDR waveHeader =
   {
-    reinterpret_cast<LPSTR>(waveBuffer)           // lpData
-  , SU_BUFFER_LENGTH * sizeof(SUsample)           // dwBufferLength
-  , 0                                             // dwBytesRecorded
-  , 0                                             // dwUser
+    reinterpret_cast<LPSTR>(waveBuffer+SU_BUFFER_LENGTH/2)      // lpData
+  , SU_BUFFER_LENGTH * sizeof(SUsample)/2                       // dwBufferLength
+  , 0                                                           // dwBytesRecorded
+  , 0                                                           // dwUser
 #ifdef NO_WAVHDR_PREPARE
-  , WHDR_PREPARED |WHDR_BEGINLOOP | WHDR_ENDLOOP  // dwFlags
+  , WHDR_PREPARED |WHDR_BEGINLOOP | WHDR_ENDLOOP                // dwFlags
 #else
-  , WHDR_BEGINLOOP | WHDR_ENDLOOP                 // dwFlags
+  , WHDR_BEGINLOOP | WHDR_ENDLOOP                               // dwFlags
 #endif
-  , INFINITE                                      // dwLoops
-  , 0                                             // lpNext
-  , 0                                             // reserved
+  , INFINITE                                                    // dwLoops
+  , 0                                                           // lpNext
+  , 0                                                           // reserved
   };
 
   #pragma data_seg(".windowClassSpecification")
