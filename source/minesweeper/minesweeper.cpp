@@ -722,11 +722,12 @@ int __cdecl main() {
         reset_game_part(time);
         // Intentionally flows through to next state
       case game_state::resetting_board:
-        // Useful for debugging potentially buggy boards
-        // lcg_state = 0x25ff0e32;
 #ifdef _DEBUG
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
+        // Useful for debugging potentially buggy boards
+        // lcg_state = 0xc197beb7;
+
         reset_board_part(time);
 
         game.game_state     = game_state::playing;

@@ -227,17 +227,6 @@ void main() {
 
   fi = np.x+np.y*CELLS+STATE_SIZE;
 
-  if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
-    float
-      v = sty < 0 ? rem : bs
-    , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
-    vec3
-        acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
-      , icol = acol*.075
-      ;
-    col += digit(tcp, acol, icol, taa, d);
-  }
-
   for (int i = 1; i < 9; ++i) {
     float tw = -(ro.x-6*sqrt(i))/abs(rd).x;
 
@@ -259,7 +248,19 @@ void main() {
 
     col += palette(5E-2*tw+atm)*exp(-3E-3*tw*tw)*25E-4/max(abs(wd), 3E-3*fo)*fo;
   }
+
   col *= .8+.3*sin(length(p)*res.y*TAU/8);
+
+  if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
+    float
+      v = sty < 0 ? rem : bs
+    , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
+    vec3
+        acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
+      , icol = acol*.075
+      ;
+    col += digit(tcp, acol, icol, taa, d);
+  }
 
   if (max(ap.x, ap.y) < BORDER_DIM) {
     vec4 c = state[int(fi)];
