@@ -719,16 +719,11 @@ int __cdecl main() {
 
     switch (game.game_state) {
       case game_state::resetting_game:
-        // Useful for debugging potentially buggy boards
-        //lcg_state = 0x1e0d6339;
-#ifdef _DEBUG
-        printf("Resetting game with seed: 0x%x\n", lcg_state);
-#endif
         reset_game_part(time);
         // Intentionally flows through to next state
       case game_state::resetting_board:
         // Useful for debugging potentially buggy boards
-        //lcg_state = 0x1e0d6339;
+        // lcg_state = 0xbcf838aa;
 #ifdef _DEBUG
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
