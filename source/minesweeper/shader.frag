@@ -75,7 +75,7 @@ vec2
     , vec2(10 ,1)
     , vec2(10 ,2)
     , vec2(4  ,1)
-    , vec2(10 ,1)
+    , vec2(10 ,2)
     )
   ;
 
@@ -259,6 +259,7 @@ void main() {
 
     col += palette(5E-2*tw+atm)*exp(-3E-3*tw*tw)*25E-4/max(abs(wd), 3E-3*fo)*fo;
   }
+  col *= .8+.3*sin(length(p)*res.y*TAU/8);
 
   if (max(ap.x, ap.y) < BORDER_DIM) {
     vec4 c = state[int(fi)];

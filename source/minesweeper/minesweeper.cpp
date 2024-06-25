@@ -723,7 +723,7 @@ int __cdecl main() {
         // Intentionally flows through to next state
       case game_state::resetting_board:
         // Useful for debugging potentially buggy boards
-        // lcg_state = 0xbcf838aa;
+        // lcg_state = 0x25ff0e32;
 #ifdef _DEBUG
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
