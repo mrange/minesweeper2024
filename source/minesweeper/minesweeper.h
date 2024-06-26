@@ -36,7 +36,7 @@
 #define XRES        1600
 #define YRES        900
 
-//#define INIT_MUSIC
+#define INIT_MUSIC
 //#define LOAD_GMDLS
 #define USE_SOUND_THREAD
 
@@ -194,8 +194,8 @@ extern "C" {
   #pragma data_seg(".waveHeader")
   WAVEHDR waveHeader =
   {
-    reinterpret_cast<LPSTR>(waveBuffer+SU_BUFFER_LENGTH/2)      // lpData
-  , SU_BUFFER_LENGTH * sizeof(SUsample)/2                       // dwBufferLength
+    reinterpret_cast<LPSTR>(waveBuffer)                         // lpData
+  , SU_BUFFER_LENGTH * sizeof(SUsample)                         // dwBufferLength
   , 0                                                           // dwBytesRecorded
   , 0                                                           // dwUser
 #ifdef NO_WAVHDR_PREPARE
