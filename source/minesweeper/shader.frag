@@ -132,8 +132,8 @@ vec3 palette(float a) {
 }
 
 float segmentx(vec2 p, vec2 dim) {
+  float o = (dim.x-dim.y)/2;
   p.x = abs(p.x);
-  float o = max(dim.x-dim.y, 0)/2;
   return (p.x < o ? abs(p.y) : length(p-vec2(o, 0)))-dim.y;
 }
 
