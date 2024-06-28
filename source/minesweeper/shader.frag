@@ -137,7 +137,7 @@ float segmentx(vec2 p, vec2 dim) {
   return (p.x < o ? abs(p.y) : length(p-vec2(o, 0)))-dim.y;
 }
 
-vec3 digit(vec2 p, vec3 acol, vec3 icol, float aa, float n) {
+vec3 digit(vec2 p, vec3 acol, vec3 icol, float caa, float n) {
   vec2
       ap = abs(p)
     , p0 = p
@@ -162,7 +162,7 @@ vec3 digit(vec2 p, vec3 acol, vec3 icol, float aa, float n) {
     : acol
     ;
 
-  return scol*smoothstep(aa, -aa, min(segmentx(p0, ddim), segmentx(p1, ddim)));
+  return scol*smoothstep(caa, -caa, min(segmentx(p0, ddim), segmentx(p1, ddim)));
 }
 
 // License: Unknown, author: Unknown, found: don't remember
