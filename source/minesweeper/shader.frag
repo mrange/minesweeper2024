@@ -249,7 +249,7 @@ void main() {
     col += palette(5E-2*tw+atm)*exp(-3E-3*tw*tw)*25E-4/max(abs(wd), 3E-3*fo)*fo;
   }
 
-  col *= .8+.3*sin(length(p)*res.y*TAU/8);
+//  col *= .8+.3*sin(length(p)*res.y*TAU/8);
 
   if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
     float
@@ -268,7 +268,7 @@ void main() {
     float
         cts = c.z
       , mts = c.w
-      , d1  = pow(dot(cp4, cp4), 1./8)-0.45
+      , d1  = pow(dot(cp4, cp4), 1./8)-.45
       , mfo = smoothstep(mts+1./2, mts+1./8, gtm)
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
       ;
@@ -296,7 +296,7 @@ void main() {
           , icol = acol/20
           ;
         if (cs < 0) {
-  //        ccol += acol*1E-2/max(length(fcp), 5E-1);
+          //ccol += acol*1E-2/max(length(fcp), 5E-1);
           ccol += digit(fcp, acol, icol, faa, -cs);
         }
       } else {

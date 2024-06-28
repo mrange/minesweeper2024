@@ -726,7 +726,7 @@ int __cdecl main() {
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
         // Useful for debugging potentially buggy boards
-        // lcg_state = 0xc197beb7;
+        // lcg_state = 0xb86f78b3;
 
         reset_board_part(time);
 
