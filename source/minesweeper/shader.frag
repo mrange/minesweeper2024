@@ -198,7 +198,6 @@ void main() {
 
   vec3
       col = vec3(0)
-    , p3  = vec3(p, 0)
     , ro  = vec3(0,0,atm)
     , rd  = normalize(vec3(p,2))
     ;
@@ -253,7 +252,7 @@ void main() {
 
   if (tnp.y == 0 && abs(tnp.x-.5) < 6) {
     float
-      v = sty < 0 ? rem : bs
+      v = sty > 0 ? bs : rem
     , d = tnp.x > 0 ? mod(v*pow(10, tnp.x-6), 10) : textChars[int(tnp.x+5+3*(1-sty))];
     vec3
         acol = palette(2.5+1.5*sty+.4*tcp.y+(tnp.x < 1 ? 0:3))
@@ -273,7 +272,7 @@ void main() {
       , sfo = smoothstep(cts, cts+STATE_SLEEP, gtm)
       ;
 
-    vec3 ccol  = tanh(8*col)/8;
+    vec3 ccol  = tanh(col*8)/8;
 
     for (int i = 0; i < 2; ++i) {
       float
@@ -305,7 +304,7 @@ void main() {
     }
 
     col = mix(col, ccol, smoothstep(caa, -caa, d1));
-    col = mix(col, mix(palette(3.+p.y)/4,vec3(1), mfo), smoothstep(caa, -caa, abs(d1)-1./80));
+    col = mix(col, mix(palette(3.+p.y)/3,vec3(1), mfo), smoothstep(caa, -caa, abs(d1)-1./80));
   }
 
 
