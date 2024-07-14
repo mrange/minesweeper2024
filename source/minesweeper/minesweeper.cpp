@@ -22,7 +22,7 @@
 extern "C" {
 
 #ifdef _DEBUG
-  void APIENTRY debugCallback(
+  void APIENTRY debug_callback(
       GLenum          source
     , GLenum          type
     , GLuint          id
@@ -36,17 +36,49 @@ extern "C" {
     printf("\n");
   }
   char debugLog[0xFFFF];
+
+  void check_invariant() {
+    auto no_of_uncovered= 0;
+    auto no_of_bombs    = 0;
+    auto no_of_covered  = 0;
+    for (auto & cell : game.board.cells) {
+      if (cell.has_bomb) {
+        ++no_of_bombs;
+      }
+
+      switch(cell.state) {
+        case cell_state::covered_flag:
+        case cell_state::covered_empty:
+        case cell_state::uncovering:
+          ++no_of_covered;
+          break;
+        default:
+          ++no_of_uncovered;
+          break;
+      }
+    }
+
+    auto gp = &game;
+
+    switch(game.game_state) {
+      case game_state::playing:
+        assert(no_of_bombs                == BOMBS_PER_BOARD);
+        assert(CELLS*CELLS                == no_of_covered+no_of_uncovered);
+        assert(CELLS*CELLS-no_of_covered  == game.board.uncovered);
+        break;
+    }
+  }
 #endif
 
-  #pragma code_seg(".lcg_rand_uint32")
-  uint32_t lcg_rand_uint32(uint32_t exclusive_max) {
+  #pragma code_seg(".lcg_rand_uint32_cells")
+  uint32_t MS_NOINLINE lcg_rand_uint32_cells() {
     lcg_state = (1664525U * lcg_state + 1013904223U);
-    uint64_t v = static_cast<uint64_t>(lcg_state)*exclusive_max;
+    uint64_t v = static_cast<uint64_t>(lcg_state)*CELLS;
     return static_cast<uint32_t>(v >> 32);
   }
 
-  #pragma code_seg(".reset_board")
-  void reset_board(float time) {
+  #pragma code_seg(".reset_board_part")
+  void MS_INLINE reset_board_part(float time) {
 #ifdef NOCRT
     // Well this is awkward
     #define SZ_OF_BOARD 0x2254
@@ -55,6 +87,8 @@ extern "C" {
       LEA edi, [game.board]
       XOR eax, eax
       MOV ecx, SZ_OF_BOARD
+      // Clear the DF flag but don't seem to be necessary
+      // CLD
       REP STOSB
     }
     #undef SZ_OF_BOARD
@@ -63,9 +97,9 @@ extern "C" {
 #endif
 
     auto remaining_bombs = BOMBS_PER_BOARD;
-    while (remaining_bombs > 0) {
-      auto x = lcg_rand_uint32(CELLS);
-      auto y = lcg_rand_uint32(CELLS);
+    do {
+      auto x = lcg_rand_uint32_cells();
+      auto y = lcg_rand_uint32_cells();
       auto i = CELLS*y+x;
       assert(i >= 0);
       assert(i < CELLS*CELLS);
@@ -76,19 +110,19 @@ extern "C" {
 
       cell.has_bomb = true;
       --remaining_bombs;
-    }
+    } while (remaining_bombs > 0);
 
-    for (auto y = 0; y < CELLS; ++y) {
-      for (auto x = 0; x < CELLS; ++x) {
+    auto y = CELLS-1;
+    do {
+      auto x = CELLS-1;
+      do {
         auto i            = x + y*CELLS;
         assert(i >= 0);
         assert(i < CELLS*CELLS);
         auto & cell       = game.board.cells[i];
         cell.prev_state   = cell_state::initial;
-        cell.state        = cell_state::covered_empty;
-        cell.next_state   = cell_state::covered_empty;
-        cell.changed_time = time-game.start_time;
-        cell.mouse_time   = time-game.start_time;
+        cell.state        = cell.next_state = cell_state::covered_empty;
+        cell.changed_time = cell.mouse_time = time-game.start_time;
 
         auto near_bombs   = 0;
         auto near_cells   = 0;
@@ -105,24 +139,20 @@ extern "C" {
               auto & near_cell            = game.board.cells[near_i];
               cell.near_cells[near_cells] = &near_cell;
               ++near_cells;
-              if (near_cell.has_bomb) ++near_bombs;
+              if (near_cell.has_bomb)
+                ++near_bombs;
             }
             assert(near_cells <= 8);
           }
         }
         cell.near_bombs = near_bombs;
-      }
-    }
+      } while(--x >= 0);
+    } while (--y >= 0);
 
     for(;;) {
-      auto x0 = lcg_rand_uint32(CELLS/2);
-      auto y0 = lcg_rand_uint32(CELLS/2);
+      auto x = lcg_rand_uint32_cells();
+      auto y = lcg_rand_uint32_cells();
 
-      auto x1 = lcg_rand_uint32(1+CELLS/2);
-      auto y1 = lcg_rand_uint32(1+CELLS/2);
-
-      auto x = x0+x1;
-      auto y = y0+y1;
       assert(x >= 0);
       assert(x < CELLS);
       assert(y >= 0);
@@ -140,61 +170,124 @@ extern "C" {
 
   }
 
-  #pragma code_seg(".reset_game")
-  void reset_game(float time) {
+  #pragma code_seg(".reset_game_part")
+  void MS_INLINE reset_game_part(float time) {
 #ifdef NOCRT
     // Well this is awkward
-    #define SZ_OF_GAME 0x2270
-    static_assert(SZ_OF_GAME == sizeof(game), "The sizeof(game) and SZ_OF_GAME must be the same");
+    #define SZ_OF_GAME 0x1C
+    static_assert(SZ_OF_GAME <= offsetof(game, board), "The offsetof(game, board) and SZ_OF_GAME must be the same");
     _asm {
-      LEA edi, [game]
-      XOR eax, eax
-      MOV ecx, SZ_OF_GAME
-      REP STOSB
+      LEA   edi, [game]
+      XOR   eax, eax
+      // PUSH/POP is smaller than MOV as long as SZ_OF_GAME < 0x100
+      PUSH  SZ_OF_GAME
+      POP   ecx
+      // Clear the DF flag but don't seem to be necessary
+      // CLD
+      REP   STOSB
     }
     #undef SZ_OF_GAME
 #else
-    memset(&game, 0, sizeof(game));
+    memset(&game, 0, offsetof(game, board));
 #endif
     game.start_time = time;
     game.last_score = 1000.F;
-    game.game_state = game_state::playing;
-
-    reset_board(time);
   }
 
-  #pragma code_seg(".draw_game")
-  void draw_game(float time) {
-    int const size  = sizeof(state)/sizeof(GLfloat);
-    auto g_t        = GAME_SPEED*(time-game.start_time);
-    auto r_x        = static_cast<GLfloat>(res_x);
-    auto r_y        = static_cast<GLfloat>(res_y);
-    auto m_x        = static_cast<GLfloat>(mouse_x);
-    auto m_y        = static_cast<GLfloat>(mouse_y);
+  #pragma code_seg(".update_res_and_mouse")
+  void MS_INLINE update_res_and_mouse(UINT uMsg, LPARAM lParam) {
+          static_assert(STATE__RES_X + 4 == STATE__MOUSE_X, "STATE__RES_X+4");
+          static_assert(STATE__RES_Y + 4 == STATE__MOUSE_Y, "STATE__RES_Y+4");
+          assert(uMsg == WM_SIZE || uMsg == WM_MOUSEMOVE);
+#ifdef APPLY_ASSEMBLER
+    __asm {
+      mov         eax,[lParam]
+      // ecx is x
+      movsx       ecx,ax
+      // eax is y
+      sar         eax,0x10
+      mov         edx,[uMsg]
 
-    auto cf         = (g_t-game.lock_time)/CLEAR_DEADLINE;
-    cf              = cf > 1.F ? 1.F : cf;
-    auto cs         = game.last_score - cf*(game.last_score - game.locked_score);
+      // Check is less than 0x10
+      sub         edx,0x10
+      // edx is 0 if so
+      sbb         edx,edx
+      // but flip its
+      not         edx
+      // Offset depending on message
+      and         edx,0x10
+      lea         esi,[state+edx];
+      push        eax
+      fild        [esp]
+      fstp        [esi+4]
+      push        ecx
+      fild        [esp]
+      fstp        [esi]
+      test edx, edx
+      jnz         wm_mousemove
+      // edx is 0
+      push        edx
+      push        edx
+      call        glViewport
+      sub         esp,8
+  wm_mousemove:
+      add         esp,8
+    }
+#else
+    int x = GET_X_LPARAM(lParam);
+    int y = GET_Y_LPARAM(lParam);
+    int o = WM_SIZE == uMsg ? 0 : 4;
+    state[STATE__RES_X+o] = static_cast<GLfloat>(x);
+    state[STATE__RES_Y+o] = static_cast<GLfloat>(y);
+    if (!o)
+      glViewport(0, 0, x, y);
+#endif
+  }
+
+  #pragma code_seg(".update_mouse_buttons")
+  void MS_INLINE update_mouse_buttons(UINT uMsg) {
+    static_assert(WM_LBUTTONDOWN  == 0x201, "WM_LBUTTONDOWN");
+    static_assert(WM_LBUTTONUP    == 0x202, "WM_LBUTTONUP"  );
+    static_assert(WM_RBUTTONDOWN  == 0x204, "WM_RBUTTONDOWN");
+    static_assert(WM_RBUTTONUP    == 0x205, "WM_RBUTTONUP"  );
+    assert(uMsg >= 0x201 && uMsg <= 0x205);
+    assert(uMsg != 0x203);
+#ifdef APPLY_ASSEMBLER
+    __asm {
+      mov eax                 , 0x205
+      sub eax                 , [uMsg]
+      push 3
+      pop ecx
+      cdq
+      div ecx
+      mov [mouse_buttons+eax] , dl
+    }
+#else
+    auto i = -(static_cast<int>(uMsg) - 0x205);
+    mouse_buttons[i/3] = i%3;
+#endif
+  }
+  #pragma code_seg(".draw_game")
+  void MS_INLINE game_step(float game_time) {
+    auto board_time   = GAME_SPEED*(game_time-game.start_time);
+
+    auto clear_factor = (board_time-game.lock_time)/CLEAR_DEADLINE;
+    clear_factor      = clear_factor > 1.F ? 1.F : clear_factor;
+    auto board_score  = game.last_score - clear_factor*(game.last_score - game.locked_score);
 
     assert(game.game_state == game_state::playing || game.game_state == game_state::game_over);
     if (game.game_state == game_state::game_over) {
-      cs  = game.last_score;
+      board_score = game.last_score;
     }
 
     // Setup state
-    GLfloat* s  = state;
-    *s++        = GAME_SPEED*(time-application_start_time);
-    *s++        = r_x;
-    *s++        = r_y;
-    *s++        = g_t;
-    *s++        = m_x;
-    *s++        = r_y-m_y;
-    *s++        = cs ;
-    *s++        = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
-    assert(s == state+4*STATE_SIZE);
+    state[STATE__GAME_TIME  ] = GAME_SPEED*game_time;
+    state[STATE__BOARD_TIME ] = board_time;
+    state[STATE__BOARD_SCORE] = board_score;
+    state[STATE__REMAINING  ] = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
 
-    auto mp_x   = (-res_x+2.F*m_x)/res_y;
-    auto mp_y   = -(-res_y+2.F*m_y)/res_y;
+    auto mp_y   = (state[STATE__RES_Y]-2.F*state[STATE__MOUSE_Y])/state[STATE__RES_Y];
+    auto mp_x   = (2.F*state[STATE__MOUSE_X]-state[STATE__RES_X])/state[STATE__RES_Y];
 
     auto mcp_x  = mp_x;
     auto mcp_y  = mp_y;
@@ -242,12 +335,12 @@ extern "C" {
     if (mnp_x >= 0 && mnp_x < CELLS && mnp_y >= 0 && mnp_y < CELLS) {
       assert(ci >= 0 && ci < CELLS*CELLS);
       auto & cell = game.board.cells[ci];
-      cell.mouse_time = g_t;
+      cell.mouse_time = board_time;
 
       if (cell.state == cell.next_state && game.game_state == game_state::playing) {
         // React on mouse click if state is up to date and we are playing
 
-        if (mouse_left_button == 0 && mouse_left_button_previous == 1) {
+        if (!mouse_buttons[BTN__LEFT] && mouse_buttons_previous[BTN__LEFT]) {
           // Left button released
           switch (cell.state) {
             case cell_state::uncovered:
@@ -280,7 +373,7 @@ extern "C" {
           }
         }
 
-        if (mouse_right_button == 0 && mouse_right_button_previous == 1) {
+        if (!mouse_buttons[BTN__RIGHT] && mouse_buttons_previous[BTN__RIGHT]) {
           // Right button released
           switch (cell.state) {
             case cell_state::covered_empty:
@@ -292,12 +385,15 @@ extern "C" {
                 ;
               break;
           }
+
         }
+      } else if (!mouse_buttons[BTN__RIGHT] && mouse_buttons_previous[BTN__RIGHT] && game.game_state == game_state::game_over) {
+        game.game_state     = game_state::resetting_game;
       }
     }
 
-    if (g_t >= game.next_state_advance) {
-      game.next_state_advance = g_t + STATE_SLEEP;
+    if (board_time >= game.next_state_advance) {
+      game.next_state_advance = board_time + STATE_SLEEP;
 
       for (auto & cell : game.board.cells) {
         switch (cell.state) {
@@ -305,16 +401,16 @@ extern "C" {
             if (cell.has_bomb) {
               cell.next_state = cell_state::exploding;
               game.game_state = game_state::game_over;
-              game.last_score = cs;
+              game.last_score = board_score;
             } else {
               ++game.board.uncovered;
               if (BOMBS_PER_BOARD + game.board.uncovered >= CELLS*CELLS) {
-                game.boards_cleared++;
-                auto new_score      = cs+1000.F*game.boards_cleared;
-                game.lock_time      = g_t;
+                ++game.boards_cleared;
+                auto new_score      = board_score+1000.F*game.boards_cleared;
+                game.lock_time      = board_time;
                 game.locked_score   = new_score*0.5F > game.locked_score ? new_score*0.5F : game.locked_score;
                 game.last_score     = new_score;
-                game.game_state = game_state::resetting_board;
+                game.game_state     = game_state::resetting_board;
               }
               cell.next_state = cell_state::uncovered;
               if (cell.near_bombs == 0) {
@@ -353,16 +449,16 @@ extern "C" {
         if (cell.state != cell.next_state) {
           cell.prev_state   = cell.state;
           cell.state        = cell.next_state;
-          cell.changed_time = g_t;
+          cell.changed_time = board_time;
         }
       }
     }
 
-    mouse_left_button_previous  = mouse_left_button;
-    mouse_right_button_previous = mouse_right_button;
+    mouse_buttons_previous[0] = mouse_buttons[0];
+    mouse_buttons_previous[1] = mouse_buttons[1];
 
     //  Jump to first cell
-    s           = state+4*STATE_SIZE;
+    auto s = state+4*STATE_SIZE;
     // Setup cells
     for (auto & cell : game.board.cells) {
       *s++ = cell.state           != cell_state::uncovered ? static_cast<GLfloat>(cell.state) : static_cast<GLfloat>(-cell.near_bombs);
@@ -371,69 +467,24 @@ extern "C" {
       *s++ = cell.mouse_time      ;
     }
     assert(s == state + TOTAL_STATE);
-
-    // Use the previously compiled shader program
-    ((PFNGLUSEPROGRAMPROC)wglGetProcAddress(nm_glUseProgram))(fragmentShaderProgram);
-    // Sets shader parameters
-    ((PFNGLUNIFORM4FVPROC)wglGetProcAddress(nm_glUniform4fv))(
-        0 // Uniform location
-      , size
-      , state
-      );
-    // Draws a rect over the entire window with fragment shader providing the gfx
-    glRects(-1, -1, 1, 1);
   }
 
   #pragma code_seg(".WndProc")
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    auto mx = mouse_x;
     switch (uMsg) {
-      // To be ignored
-      case WM_SYSCOMMAND:
-        if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER)
-          return 0;
-        break;
-      // Mouse moved
-      case WM_MOUSEMOVE:
-        mouse_x = GET_X_LPARAM(lParam);
-        mouse_y = GET_Y_LPARAM(lParam);
-        break;
-      // Resized the window? No problem!
-      case WM_SIZE:
-        res_x = LOWORD(lParam);
-        res_y = HIWORD(lParam);
-        glViewport(0, 0, res_x, res_y);
-        break;
-      // Capture mouse buttons
-      case WM_LBUTTONDOWN:
-      case WM_LBUTTONUP:
-        mouse_left_button = uMsg == WM_LBUTTONDOWN;
-        break;
-      case WM_RBUTTONDOWN:
-      case WM_RBUTTONUP:
-        mouse_right_button = uMsg == WM_RBUTTONDOWN;
-        break;
-      case MM_WOM_DONE:
-        {
-          waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer+SU_RESTART_POS);
-          waveHeader.dwBufferLength = (SU_BUFFER_LENGTH-SU_RESTART_POS) * sizeof(SUsample);
-          waveHeader.dwFlags        &= ~WHDR_DONE;
-
-          auto waveWriteOk = waveOutWrite(
-            waveOut
-          , &waveHeader
-          , sizeof(waveHeader)
-          );
-          assert(waveWriteOk == MMSYSERR_NOERROR);
-        }
-        break;
       // It's time to stop!
-      case WM_CLOSE:
       case WM_DESTROY:
+      case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
-      case WM_CHAR:
+      // Resized the window? No problem!
+      case WM_SIZE:
+      case WM_MOUSEMOVE:
+        update_res_and_mouse(uMsg, lParam);
+        break;
+#ifndef NO_KEY_TEST
       case WM_KEYDOWN:
+      case WM_CHAR:
         // Done on Escape
         if (wParam == VK_ESCAPE) {
           PostQuitMessage(0);
@@ -445,6 +496,24 @@ extern "C" {
           game.game_state = game_state::resetting_board;
 #endif
         }
+        break;
+#endif
+#ifndef NO_SYS_COMMAND
+      // To be ignored
+      case WM_SYSCOMMAND:
+        if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER)
+          return 0;
+        break;
+#endif
+      // Capture mouse buttons
+      case WM_LBUTTONDOWN:
+      case WM_LBUTTONUP:
+      case WM_RBUTTONDOWN:
+      case WM_RBUTTONUP:
+        update_mouse_buttons(uMsg);
+#ifdef _DEBUG
+        printf("button state: %d(%d),%d(%d)\n", mouse_buttons[BTN__LEFT], mouse_buttons_previous[BTN__LEFT], mouse_buttons[BTN__RIGHT], mouse_buttons_previous[BTN__RIGHT]);
+#endif
         break;
     }
 
@@ -459,7 +528,7 @@ void entrypoint() {
 #else
 int __cdecl main() {
 #endif
-  application_start_time = GetTickCount() / 1000.F;
+  auto app_start_time = GetTickCount() / 1000.F;
 
 /*
   auto dpiAware = SetProcessDPIAware();
@@ -506,12 +575,22 @@ int __cdecl main() {
   auto hdc = GetDC(hwnd);
   assert(hdc);
 
+
   // Find a pixel format that is compatible with OpenGL
+#ifdef NO_CHOOSE_PIXEL_FORMAT
+//  auto pixelFormat = 8;
+#ifdef NO_SWAP_BUFFERS
+  auto pixelFormat = 2;
+#else
+  auto pixelFormat = 10;
+#endif
+#else
   auto pixelFormat = ChoosePixelFormat(
     hdc
   , &pixelFormatSpecification
   );
   assert(pixelFormat);
+#endif
 
   // Set the pixel format on the Device Context to prepare it for OpenGL
   auto setOk = SetPixelFormat(
@@ -531,17 +610,17 @@ int __cdecl main() {
 
   // Init our game
   lcg_state = GetTickCount()+0x19740531U;
-//    lcg_state = 19740531;
+  // lcg_state = 19740531;
 
-    // Bit of debugging info during debug builds
-    //  Don't want to waste bytes on that in Release mode
+  // Bit of debugging info during debug builds
+  //  Don't want to waste bytes on that in Release mode
 #ifdef _DEBUG
   glEnable(GL_DEBUG_OUTPUT);
-  ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debugCallback, 0);
+  ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debug_callback, 0);
 #endif
 
   // Compiles the provided fragment shader into a shader program
-  fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
+  auto fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
 
 #ifdef _DEBUG
   ((PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog"))(fragmentShaderProgram, sizeof(debugLog), NULL, debugLog);
@@ -555,6 +634,7 @@ int __cdecl main() {
   //  to a wave buffer
   //  Then we just ask Windows to play it for us
 
+#ifdef LOAD_GMDLS
   // Version v0.3.0 of sointu has an issue in that the EBX register is not restored
   //  So save it with some inline assembler
   //  Fix coming: https://github.com/vsariola/sointu/issues/130
@@ -567,6 +647,7 @@ int __cdecl main() {
   _asm {
     pop ebx
   }
+#endif
 
 #ifdef USE_SOUND_THREAD
   // Create the wave buffer in a separate thread so we don't have to wait for it
@@ -578,25 +659,25 @@ int __cdecl main() {
 #endif
 #endif
 
+  HWAVEOUT waveOut;
   auto waveOpenOk = waveOutOpen(
     &waveOut
   , WAVE_MAPPER
   , &waveFormatSpecification
-  , reinterpret_cast<DWORD_PTR>(hwnd)
   , 0
-  , CALLBACK_WINDOW
+  , 0
+  , CALLBACK_NULL
   );
   assert(waveOpenOk == MMSYSERR_NOERROR);
 
-  waveHeader.lpData         = reinterpret_cast<LPSTR>(waveBuffer);
-  waveHeader.dwBufferLength = (SU_BUFFER_LENGTH) * sizeof(SUsample);
-
+#ifndef NO_WAVHDR_PREPARE
   auto wavePrepareOk = waveOutPrepareHeader(
     waveOut
   , &waveHeader
   , sizeof(waveHeader)
   );
   assert(wavePrepareOk == MMSYSERR_NOERROR);
+#endif
 
   auto waveWriteOk = waveOutWrite(
     waveOut
@@ -607,7 +688,7 @@ int __cdecl main() {
 
 #ifdef _DEBUG
   auto frame_count  = 0.F;
-  auto next_report  = application_start_time+1.F;
+  auto next_report  = app_start_time+1.F;
 #endif
 
    auto done = false;
@@ -624,12 +705,12 @@ int __cdecl main() {
       DispatchMessageA(&msg);
     }
 
-    auto time = GetTickCount() / 1000.F;
+    auto time = (GetTickCount() / 1000.F) - app_start_time;
 
 #ifdef _DEBUG
     ++frame_count;
     if (time >= next_report) {
-      auto fps = frame_count/(time-application_start_time);
+      auto fps = frame_count/(time);
       printf("FPS:%f\n", fps);
       next_report = 1.F+time;
     }
@@ -638,33 +719,45 @@ int __cdecl main() {
 
     switch (game.game_state) {
       case game_state::resetting_game:
-        // Useful for debugging potentially buggy boards
-        //lcg_state = 0x1e0d6339;
-#ifdef _DEBUG
-        printf("Resetting game with seed: 0x%x\n", lcg_state);
-#endif
-        reset_game(time);
-        break;
+        reset_game_part(time);
+        // Intentionally flows through to next state
       case game_state::resetting_board:
-        // Useful for debugging potentially buggy boards
-        //lcg_state = 0x1e0d6339;
 #ifdef _DEBUG
         printf("Resetting board with seed: 0x%x\n", lcg_state);
 #endif
-        reset_board(time);
+        // Useful for debugging potentially buggy boards
+        // lcg_state = 0xb86f78b3;
+
+        reset_board_part(time);
 
         game.game_state     = game_state::playing;
         break;
     }
 
-    // Windows message handling done, let's draw some gfx
+    // Update game state
+    game_step(time);
 
-    // Draw the game
-    draw_game(time);
+    // Use the previously compiled shader program
+    ((PFNGLUSEPROGRAMPROC)wglGetProcAddress(nm_glUseProgram))(fragmentShaderProgram);
+    // Sets shader parameters
+    ((PFNGLUNIFORM4FVPROC)wglGetProcAddress(nm_glUniform4fv))(
+        0 // Uniform location
+      , sizeof(state)/sizeof(GLfloat)
+      , state
+      );
 
-    // Swap the buffers to present the gfx
+    // Draws a rect over the entire window with fragment shader providing the gfx
+    glRects(-1, -1, 1, 1);
+
+#ifndef NO_SWAP_BUFFERS
     auto swapOk = SwapBuffers(hdc);
     assert(swapOk);
+#endif
+
+#ifdef _DEBUG
+    check_invariant();
+#endif
+
   }
 
   // We are done, just exit. No need to waste bytes on cleaning

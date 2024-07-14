@@ -107,7 +107,7 @@ su_render_sampleloop:                   ; loop through every sample in the row
             jl      su_render_sampleloop
         pop     eax      ; eax = Row, Stack: GlobalTick, RandSeed, edi, esi, ebp, esp, ebx, edx, ecx, eax, retaddr_su_render_song, OutputBufPtr                   ; Stack: pushad ptr
         inc     eax
-        cmp     eax, 384
+        cmp     eax, 192
         jl      su_render_rowloop
     ; rewind the stack the entropy of multiple pop eax is probably lower than add
     pop     eax      ; eax = GlobalTick, Stack: RandSeed, edi, esi, ebp, esp, ebx, edx, ecx, eax, retaddr_su_render_song, OutputBufPtr 
@@ -148,7 +148,7 @@ su_update_voices_retrigger:
 su_update_voices_nexttrack:
         add     edi, su_voice.size
 su_update_voices_skipadd:
-        add     esi, 24
+        add     esi, 12
         dec     ebx
         jnz     short su_update_voices_trackloop
     ret
@@ -564,12 +564,6 @@ su_op_oscillat_normalize_note:
     fmul    dword [FCONST_9_269614em05]   ; // st0 is now frequency
 su_op_oscillat_normalized:
     fadd    dword [ebp]
-    test    al, byte 0x80
-    jz      short su_op_oscillat_not_sample
-    fst     dword [ebp]  ; for samples, we store the phase without mod(p,1)
-    call    su_oscillat_sample
-    jmp     su_op_oscillat_shaping ; skip the rest to avoid color phase normalization and colorloading
-su_op_oscillat_not_sample:
     fld1                     ; we need to take mod(p,1) so the frequency does not drift as the float
     fadd    st1, st0         ; make no mistake: without this, there is audible drifts in oscillator pitch
     fxch                     ; as the actual period changes once the phase becomes too big
@@ -586,12 +580,27 @@ su_op_oscillat_notsine:
     jz      short su_op_oscillat_not_trisaw
     call    su_oscillat_trisaw
 su_op_oscillat_not_trisaw:
+    test    al, byte 0x10
+    jz      short su_op_oscillat_not_pulse
+    call    su_oscillat_pulse
+su_op_oscillat_not_pulse:
 su_op_oscillat_shaping:
     ; finally, shape the oscillator and apply gain
     fld     dword [edx + 16]
     call    su_waveshaper
 su_op_oscillat_gain:
     fmul    dword [edx + 20]
+    ret
+
+section .su_oscillat_pulse code align=1
+su_oscillat_pulse:
+    fucomi  st1                             ; // c      p
+    fld1
+    jnc     short su_oscillat_pulse_up      ; // +1     c       p
+    fchs                                    ; // -1     c       p
+su_oscillat_pulse_up:
+    fstp    st1                             ; // +-1    p
+    fstp    st1                             ; // +-1
     ret
 
 section .su_oscillat_trisaw code align=1
@@ -623,30 +632,6 @@ su_oscillat_sine_do:
     fsin                                    ; // sin(2*pi*p)
     ret
 
-section .su_oscillat_sample code align=1
-su_oscillat_sample:    
-    pushad  ; Stack: SampleDi, esi, ebp, esp, SampleBx, SampleDx, SampleCx, SampleAx, retaddr_su_oscillat_sample, retaddr_su_op_oscillator, edi, ValueStream, Voice, esp, CommandStream, Synth, DelayWorkSpace, eax, retaddr_su_run_vm, VoicesRemain, PolyphonyBitmask, Sample, Row, GlobalTick, RandSeed, edi, esi, ebp, esp, ebx, edx, ecx, eax, retaddr_su_render_song, OutputBufPtr                              ; edx must be saved, eax & ecx if this is stereo osc
-    push    eax
-    mov     al, byte [esi-4]                                ; reuse "color" as the sample number    
-    lea     edi, [su_sample_offsets + eax*8]; edi points now to the sample table entry    
-    fmul    dword [FCONST_84_28075]                  ; p*r
-    fistp   dword [esp]
-    pop     edx                                             ; edx is now the sample number
-    movzx   ebx, word [edi + 4]    ; ecx = loopstart
-    sub     edx, ebx                                        ; if sample number < loop start
-    jl      su_oscillat_sample_not_looping                  ;   then we're not looping yet
-    mov     eax, edx                                        ; eax = sample number
-    movzx   ecx, word [edi + 6]   ; edi is now the loop length
-    xor     edx, edx                                        ; div wants edx to be empty
-    div     ecx                                             ; edx is now the remainder
-su_oscillat_sample_not_looping:
-    add     edx, ebx                                        ; sampleno += loopstart
-    add     edx, dword [edi]    
-    fild    word [su_sample_table + edx*2]    
-    fdiv    dword [FCONST_32767_0]    
-    popad  ; Popped: eax = SampleAx, ecx = SampleCx, edx = SampleDx, ebx = SampleBx, esp, ebp, esi, edi = SampleDi. Stack: retaddr_su_oscillat_sample, retaddr_su_op_oscillator, edi, ValueStream, Voice, esp, CommandStream, Synth, DelayWorkSpace, eax, retaddr_su_run_vm, VoicesRemain, PolyphonyBitmask, Sample, Row, GlobalTick, RandSeed, edi, esi, ebp, esp, ebx, edx, ecx, eax, retaddr_su_render_song, OutputBufPtr
-    ret
-
 ;-------------------------------------------------------------------------------
 ;   IN opcode: inputs and clears a global port
 ;-------------------------------------------------------------------------------
@@ -664,35 +649,6 @@ su_op_in:
     mov     dword [edi + su_synthworkspace.left + eax*4], ecx
     ret
 
-
-section .su_load_gmdls code align=1
-global _su_load_gmdls@0
-_su_load_gmdls@0:
-    mov     ebx, su_sample_table
-    push    0                   ; OF_READ
-    push    ebx                 ; &ofstruct, blatantly reuse the sample table
-    push    su_gmdls_path1      ; path
-    call    dword [__imp__OpenFile@12]; eax = OpenFile(path,&ofstruct,OF_READ) // should not touch ebx according to calling convention
-    push    0                       ; NULL
-    push    ebx                     ; &bytes_read, reusing sample table again; it does not matter that the first four bytes are trashed
-    push    3440660                 ; number of bytes to read
-    push    ebx                     ; here we actually pass the sample table to readfile
-    push    eax                     ; handle to file
-    call    dword [__imp__ReadFile@20] ; Readfile(handle,&su_sample_table,SAMPLE_TABLE_SIZE,&bytes_read,NULL)
-    ret
-extern __imp__OpenFile@12 ; requires windows
-extern __imp__ReadFile@20
- ; requires windows
-
-
-section .su_gmdls_path1 data align=1
-su_gmdls_path1:
-    db 'drivers/gm.dls',0
-
-
-section .susamtable bss align=256
-su_sample_table:
-    resb    3440660    ; size of gmdls.
 
 
 ;-------------------------------------------------------------------------------
@@ -772,10 +728,10 @@ su_vm_jumptable:
     dd    su_op_envelope
     dd    su_op_oscillator
     dd    su_op_filter
+    dd    su_op_addp
     dd    su_op_mulp
     dd    su_op_pan
     dd    su_op_outaux
-    dd    su_op_addp
     dd    su_op_delay
     dd    su_op_xch
     dd    su_op_send
@@ -791,9 +747,9 @@ su_vm_transformcounts:
     db    6
     db    2
     db    0
+    db    0
     db    1
     db    2
-    db    0
     db    4
     db    0
     db    1
@@ -853,7 +809,7 @@ su_patterns:
     db 77,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
     db 76,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
     db 75,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-    db 62,63,67,72,74,75,62,63,67,72,74,75,62,63,67,72
+    db 62,74,62,74,62,74,62,74,62,74,62,74,62,74,62,74
     db 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 
 ;-------------------------------------------------------------------------------
@@ -861,22 +817,13 @@ su_patterns:
 ;-------------------------------------------------------------------------------
 section .su_tracks data align=1
 su_tracks:
-    db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    db 1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12
-    db 13,14,15,16,17,18,19,20,21,22,23,24,13,14,15,16,17,18,19,20,21,22,23,24
-    db 25,26,27,28,29,30,31,32,33,34,35,36,25,26,27,28,29,30,31,32,33,34,35,36
-    db 37,38,39,40,41,42,43,44,45,46,13,14,37,38,39,40,41,42,43,44,45,46,13,14
-    db 47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47
-    db 13,48,48,48,48,48,48,48,48,48,48,48,13,48,48,48,48,48,48,48,48,48,48,48
-;-------------------------------------------------------------------------------
-;    Sample offsets
-;-------------------------------------------------------------------------------
-section .su_sample_offsets data align=1
-su_sample_offsets:
-    dd 773679
-    dw 4376
-    dw 1
-
+    db 0,0,0,0,0,0,0,0,0,0,0,0
+    db 1,2,3,4,5,6,7,8,9,10,11,12
+    db 13,14,15,16,17,18,19,20,21,22,23,24
+    db 25,26,27,28,29,30,31,32,33,34,35,36
+    db 37,38,39,40,41,42,43,44,45,46,13,14
+    db 47,47,47,47,47,47,47,47,47,47,47,47
+    db 13,48,48,48,48,48,48,48,48,48,48,48
 ;-------------------------------------------------------------------------------
 ;    Delay times
 ;-------------------------------------------------------------------------------
@@ -890,14 +837,14 @@ su_delay_times:
 ;-------------------------------------------------------------------------------
 section .su_patch_code data align=1
 su_patch_code:
-    db 2,4,6,8,10,13,0,2,4,4,14,8,6,10,16,18,16,13,2,20,4,20,20,0,2,4,4,8,8,10,16,18,16,13,0,2,20,20,20,20,20,20,20,20,0,23,7,17,25,0
+    db 2,4,6,4,6,8,10,12,15,0,2,4,4,8,10,6,12,16,18,16,15,2,20,4,20,20,0,2,4,4,10,10,12,16,18,16,15,0,2,20,20,20,20,20,20,20,20,0,23,7,17,25,0
 
 ;-------------------------------------------------------------------------------
 ;    The parameters / inputs to each opcode
 ;-------------------------------------------------------------------------------
 section .su_patch_parameters data align=1
 su_patch_parameters:
-    db 32,60,0,64,128,45,64,0,0,64,128,128,42,14,16,64,128,128,52,102,0,0,30,64,74,0,82,64,0,35,76,74,0,82,64,128,35,0,128,64,64,64,128,96,0,0,1,64,128,96,0,1,1,64,128,0,96,0,0,128,123,104,0,79,64,0,0,64,64,40,102,35,0,102,59,0,0,60,19,64,128,76,64,0,31,64,84,64,103,64,0,32,64,64,64,80,72,128,96,0,0,1,74,128,96,0,1,1,32,64,0,112,0,0,128,128,53,132,128,53,136,128,53,140,128,53,144,0,69,132,0,69,136,0,69,140,0,77,144,2,70,128,16,40,128,118,64,2,15,128
+    db 32,60,0,64,128,45,64,0,0,64,128,16,42,14,16,64,64,0,0,64,92,16,65,10,16,64,128,128,52,102,0,0,30,64,74,0,82,64,0,35,76,74,0,82,64,128,35,0,128,64,64,32,128,64,0,0,1,32,128,64,0,1,1,64,128,0,96,0,0,128,123,104,0,79,64,0,0,64,64,40,102,35,0,102,59,0,0,60,8,64,128,76,64,0,31,64,84,64,103,21,0,32,64,64,64,80,72,128,96,0,0,1,74,128,96,0,1,1,32,64,0,112,0,0,128,128,53,132,128,53,136,128,53,140,128,53,144,0,69,132,0,69,136,0,69,140,0,77,144,2,70,128,16,40,128,118,64,2,15,128
 
 ;-------------------------------------------------------------------------------
 ;    Constants
@@ -908,8 +855,6 @@ FCONST_0_500000         dd 0x3f000000
 FCONST_0_99609375       dd 0x3f7f0000
 FCONST_3_80000em05      dd 0x381f6230
 FCONST_9_269614em05     dd 0x38c265dc
-FCONST_84_28075         dd 0x42a88fbe
-FCONST_32767_0          dd 0x46fffe00
 ICONST_1034594986       dd 0x3daaaaaa
 ICONST_24               dd 0x18
 

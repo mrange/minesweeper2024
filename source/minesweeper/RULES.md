@@ -1,5 +1,3 @@
-Here is the updated ruleset with the new flag functionality:
-
 # Minesweeper 2024
 
 1. **Modified Minesweeper Rules**
@@ -15,6 +13,18 @@ Here is the updated ruleset with the new flag functionality:
 11. Scoring begins at 1000 points and decreases over a period of 60 seconds.
 12. Successfully clearing a board awards a new score equal to the current score plus 1000 times the number of boards cleared.
 13. Upon clearing a board, a "locked score" is calculated by halving the new score. If the resulting score is lower than the previous locked score, the previous locked score is retained. The score then decreases from the new score to the locked score over 60 seconds.
-14. On game over, your final score is displayed.
-15. Pressing the "R" key restarts the game, allowing you to start fresh with a new board.
-16. Pressing the "Escape" key quits the game.
+14. On game over, your final score is displayed. You can reset the game board by clicking right mouse button.
+
+## Technical tidbits
+
+Performance may be suboptimal on lower-end graphics cards, likely due to the use of arrays.
+
+While arrays are not ideal for shader performance, they were chosen for their simplicity and ease of implementation, which is beneficial for a 4KiB executable.
+
+Mid-tier and higher-end graphics cards appear to handle uniform array usage more efficiently.
+
+For instance, on my work laptop with an integrated AMD Radeon GPU, utilization reaches 90%. In contrast, my desktop with a mid-tier graphics card maintains only 2% GPU usage.
+
+During shader development, I observed that modifying the array within shader execution significantly increased GPU usage on NVIDIA cards as well.
+
+A potential optimization could involve rewriting the code to use textures for communicating game state, rather than arrays.

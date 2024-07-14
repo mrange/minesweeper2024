@@ -16,12 +16,18 @@
 
 #pragma once
 
-#define NOCRT
-
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 #define WINDOWS_IGNORE_PACKING_MISMATCH
 #define SHADER_MINIFIER_IMPL
+
+#define NOCRT
+#define APPLY_ASSEMBLER
+#define NO_KEY_TEST
+#define NO_SYS_COMMAND
+#define NO_WAVHDR_PREPARE
+//#define NO_SWAP_BUFFERS
+//#define NO_CHOOSE_PIXEL_FORMAT
 
 #define LCG_A       1664525
 #define LCG_C       1013904223
@@ -31,6 +37,7 @@
 #define YRES        900
 
 #define INIT_MUSIC
+//#define LOAD_GMDLS
 #define USE_SOUND_THREAD
 
 #define CELLS           12
@@ -46,15 +53,31 @@
 #define SU_RESTART_POS  (SU_BUFFER_LENGTH/2)
 
 #define GAME_SPEED      1.F
+#define BTN__LEFT       1
+#define BTN__RIGHT      0
+
+#define STATE__RES_X        0
+#define STATE__RES_Y        1
+#define STATE__GAME_TIME    2
+#define STATE__BOARD_TIME   3
+#define STATE__MOUSE_X      4
+#define STATE__MOUSE_Y      5
+#define STATE__BOARD_SCORE  6
+#define STATE__REMAINING    7
+
+#define MS_NOINLINE __declspec(noinline)
 
 #ifdef _DEBUG
 #include "assert.h"
 #include <stdio.h>
+#define MS_INLINE __declspec(noinline)
 #else
 #define assert(x)
+#define MS_INLINE __forceinline
 #endif
 
-#include <math.h>
+#include <cstddef>
+#include <cmath>
 
 #include <windows.h>
 #include <winuser.h>
@@ -65,7 +88,6 @@
 #include "glext.h"
 
 #include "music.h"
-
 
 enum class cell_state {
   uncovered     = 0
@@ -92,8 +114,8 @@ struct cell {
 
 enum class game_state {
   resetting_game  = 0
-, playing         = 1
-, resetting_board = 2
+, resetting_board = 1
+, playing         = 2
 , game_over       = 3
 };
 
@@ -118,19 +140,10 @@ extern "C" {
   #pragma bss_seg(".mainbss")
   int                 _fltused                      ;
   uint32_t            lcg_state                     ;
-  int                 res_x                         ;
-  int                 res_y                         ;
-  int                 mouse_x                       ;
-  int                 mouse_y                       ;
-  int                 mouse_left_button_previous    ;
-  int                 mouse_left_button             ;
-  int                 mouse_right_button_previous   ;
-  int                 mouse_right_button            ;
-  float               application_start_time        ;
+  char                mouse_buttons_previous[2]     ;
+  char                mouse_buttons[2]              ;
   struct game         game                          ;
   GLfloat             state[TOTAL_STATE]            ;
-  HWAVEOUT            waveOut                       ;
-  WAVEHDR             waveHeader                    ;
   SUsample            waveBuffer[SU_BUFFER_LENGTH]  ;
 
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -142,11 +155,16 @@ extern "C" {
   , 0
   };
 
+#ifndef NO_CHOOSE_PIXEL_FORMAT
   #pragma data_seg(".pixelFormatDescriptor")
   PIXELFORMATDESCRIPTOR pixelFormatSpecification {
       sizeof(PIXELFORMATDESCRIPTOR)                           // nSize
     , 1                                                       // nVersion
+#ifdef NO_SWAP_BUFFERS
+    , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL                   // dwFlags
+#else
     , PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER  // dwFlags
+#endif
     , PFD_TYPE_RGBA                                           // iPixelType
     , 32                                                      // cColorBits
     , 0                                                       // cRedBits
@@ -170,6 +188,24 @@ extern "C" {
     , 0                                                       // dwLayerMask
     , 0                                                       // dwVisibleMask
     , 0                                                       // dwDamageMask
+  };
+#endif
+
+  #pragma data_seg(".waveHeader")
+  WAVEHDR waveHeader =
+  {
+    reinterpret_cast<LPSTR>(waveBuffer)                         // lpData
+  , SU_BUFFER_LENGTH * sizeof(SUsample)                         // dwBufferLength
+  , 0                                                           // dwBytesRecorded
+  , 0                                                           // dwUser
+#ifdef NO_WAVHDR_PREPARE
+  , WHDR_PREPARED |WHDR_BEGINLOOP | WHDR_ENDLOOP                // dwFlags
+#else
+  , WHDR_BEGINLOOP | WHDR_ENDLOOP                               // dwFlags
+#endif
+  , INFINITE                                                    // dwLoops
+  , 0                                                           // lpNext
+  , 0                                                           // reserved
   };
 
   #pragma data_seg(".windowClassSpecification")
@@ -206,11 +242,8 @@ extern "C" {
   #pragma data_seg(".glUniform4fv")
   char const nm_glUniform4fv[] = "glUniform4fv";
 
-  #pragma data_seg(".fragmentShaderProgram")
-  GLint fragmentShaderProgram;
-
   #pragma data_seg(".fragmentShaders")
-  char const * fragmentShaders[] = {
+  char const * const fragmentShaders[] = {
     #include "shader.inl"
   };
 
