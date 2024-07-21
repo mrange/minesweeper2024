@@ -42,7 +42,7 @@
 
 #define CELLS           12
 #define BOMBS_PER_BOARD 16
-#define STATE_SIZE      2
+#define STATE_SIZE      CELLS
 #define TOTAL_STATE     4*(CELLS*CELLS+STATE_SIZE)
 
 #define BORDER_DIM      0.825F
@@ -143,7 +143,8 @@ extern "C" {
   char                mouse_buttons_previous[2]     ;
   char                mouse_buttons[2]              ;
   struct game         game                          ;
-  GLfloat             state[TOTAL_STATE]            ;
+  GLuint              tex_tstate                    ;
+  GLfloat             tstate[TOTAL_STATE]           ;
   SUsample            waveBuffer[SU_BUFFER_LENGTH]  ;
 
   LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -239,8 +240,11 @@ extern "C" {
   #pragma data_seg(".glUseProgram")
   char const nm_glUseProgram[] = "glUseProgram";
 
-  #pragma data_seg(".glUniform4fv")
-  char const nm_glUniform4fv[] = "glUniform4fv";
+  #pragma data_seg(".glActiveTexture")
+  char const nm_glActiveTexture[] = "glActiveTexture";
+
+  #pragma data_seg(".glUniform1i")
+  char const nm_glUniform1i[] = "glUniform1i";
 
   #pragma data_seg(".fragmentShaders")
   char const * const fragmentShaders[] = {

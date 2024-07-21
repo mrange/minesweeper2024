@@ -22,7 +22,6 @@
 const int
   CELLS       = 12
 , HCELLS      = CELLS/2
-, STATE_SIZE  = 2
 ;
 
 const float
@@ -32,7 +31,8 @@ const float
 // The result of the shader
 out vec4 fcol;
 // Set by draw_game
-uniform vec4[146] state;  // 146 is CELLS*CELLS + STATE_SIZE
+uniform sampler2D tstate;
+
 
 // ----------------------------------------------------------------------------
 // The Shader
@@ -171,8 +171,12 @@ float hash(vec2 co) {
 }
 
 void main() {
+  vec4
+    state0 = texelFetch(tstate, ivec2(0,0), 0)
+  , state1 = texelFetch(tstate, ivec2(1,0), 0)
+  ;
   vec2
-      res = state[0].xy
+      res = state0.xy
     , p   = (2*gl_FragCoord.xy-res)/res.yy
     , ap  = abs(p)
     , tcp = p
@@ -184,10 +188,10 @@ void main() {
     ;
 
   float
-      atm = state[0].z/2
-    , bs  = state[1].z
-    , gtm = state[0].w
-    , rem = state[1].w
+      atm = state0.z/2
+    , gtm = state0.w
+    , bs  = state1.z
+    , rem = state1.w
     , aa  = sqrt(2) / res.y
     , caa = aa/cz
     , taa = aa/tz
@@ -224,7 +228,6 @@ void main() {
 
   tcp /= tz;
 
-  fi = np.x+np.y*CELLS+STATE_SIZE;
 
   for (int i = 1; i < 9; ++i) {
     float tw = -(ro.x-6*sqrt(i))/abs(rd).x;
@@ -262,7 +265,7 @@ void main() {
   }
 
   if (max(ap.x, ap.y) < BORDER_DIM) {
-    vec4 c = state[int(fi)];
+    vec4 c = texelFetch(tstate, ivec2(np.x, np.y+1),0);
 
     float
         cts = c.z

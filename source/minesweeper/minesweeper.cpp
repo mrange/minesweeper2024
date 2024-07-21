@@ -216,7 +216,7 @@ extern "C" {
       not         edx
       // Offset depending on message
       and         edx,0x10
-      lea         esi,[state+edx];
+      lea         esi,[tstate+edx];
       push        eax
       fild        [esp]
       fstp        [esi+4]
@@ -237,8 +237,8 @@ extern "C" {
     int x = GET_X_LPARAM(lParam);
     int y = GET_Y_LPARAM(lParam);
     int o = WM_SIZE == uMsg ? 0 : 4;
-    state[STATE__RES_X+o] = static_cast<GLfloat>(x);
-    state[STATE__RES_Y+o] = static_cast<GLfloat>(y);
+    tstate[STATE__RES_X+o] = static_cast<GLfloat>(x);
+    tstate[STATE__RES_Y+o] = static_cast<GLfloat>(y);
     if (!o)
       glViewport(0, 0, x, y);
 #endif
@@ -281,13 +281,13 @@ extern "C" {
     }
 
     // Setup state
-    state[STATE__GAME_TIME  ] = GAME_SPEED*game_time;
-    state[STATE__BOARD_TIME ] = board_time;
-    state[STATE__BOARD_SCORE] = board_score;
-    state[STATE__REMAINING  ] = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
+    tstate[STATE__GAME_TIME  ] = GAME_SPEED*game_time;
+    tstate[STATE__BOARD_TIME ] = board_time;
+    tstate[STATE__BOARD_SCORE] = board_score;
+    tstate[STATE__REMAINING  ] = static_cast<GLfloat>((CELLS*CELLS-BOMBS_PER_BOARD) - game.board.uncovered);
 
-    auto mp_y   = (state[STATE__RES_Y]-2.F*state[STATE__MOUSE_Y])/state[STATE__RES_Y];
-    auto mp_x   = (2.F*state[STATE__MOUSE_X]-state[STATE__RES_X])/state[STATE__RES_Y];
+    auto mp_y   = (tstate[STATE__RES_Y]-2.F*tstate[STATE__MOUSE_Y])/tstate[STATE__RES_Y];
+    auto mp_x   = (2.F*tstate[STATE__MOUSE_X]-tstate[STATE__RES_X])/tstate[STATE__RES_Y];
 
     auto mcp_x  = mp_x;
     auto mcp_y  = mp_y;
@@ -458,7 +458,7 @@ extern "C" {
     mouse_buttons_previous[1] = mouse_buttons[1];
 
     //  Jump to first cell
-    auto s = state+4*STATE_SIZE;
+    auto s = tstate+4*STATE_SIZE;
     // Setup cells
     for (auto & cell : game.board.cells) {
       *s++ = cell.state           != cell_state::uncovered ? static_cast<GLfloat>(cell.state) : static_cast<GLfloat>(-cell.near_bombs);
@@ -466,7 +466,7 @@ extern "C" {
       *s++ = cell.changed_time    ;
       *s++ = cell.mouse_time      ;
     }
-    assert(s == state + TOTAL_STATE);
+    assert(s == tstate + TOTAL_STATE);
   }
 
   #pragma code_seg(".WndProc")
@@ -619,6 +619,8 @@ int __cdecl main() {
   ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debug_callback, 0);
 #endif
 
+  glGenTextures(1, &tex_tstate);
+
   // Compiles the provided fragment shader into a shader program
   auto fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
 
@@ -737,13 +739,30 @@ int __cdecl main() {
     // Update game state
     game_step(time);
 
+    ((PFNGLACTIVETEXTUREPROC)wglGetProcAddress(nm_glActiveTexture))(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, tex_tstate);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(
+        GL_TEXTURE_2D
+      , 0
+      , GL_RGBA32F
+      , CELLS
+      , CELLS+1
+      , 0
+      , GL_RGBA
+      , GL_FLOAT
+      , tstate
+      );
     // Use the previously compiled shader program
     ((PFNGLUSEPROGRAMPROC)wglGetProcAddress(nm_glUseProgram))(fragmentShaderProgram);
+
     // Sets shader parameters
-    ((PFNGLUNIFORM4FVPROC)wglGetProcAddress(nm_glUniform4fv))(
+    ((PFNGLUNIFORM1IPROC)wglGetProcAddress(nm_glUniform1i))(
         0 // Uniform location
-      , sizeof(state)/sizeof(GLfloat)
-      , state
+      , 0
       );
 
     // Draws a rect over the entire window with fragment shader providing the gfx
