@@ -210,16 +210,16 @@ extern "C" {
 
   #pragma data_seg(".windowClassSpecification")
   WNDCLASSA windowClassSpecification {
-        CS_OWNDC | CS_HREDRAW | CS_VREDRAW  // style
-      , &WndProc                            // lpfnWndProc
-      , 0                                   // cbClsExtra
-      , 0                                   // cbWndExtra
-      , 0                                   // hInstance
-      , 0                                   // hIcon
-      , 0                                   // hCursor
-      , 0                                   // hbrBackground
-      , 0                                   // lpszMenuName
-      , "MS2024"                            // lpszClassName
+        CS_OWNDC | CS_HREDRAW | CS_VREDRAW                // style
+      , &WndProc                                          // lpfnWndProc
+      , 0                                                 // cbClsExtra
+      , 0                                                 // cbWndExtra
+      , 0                                                 // hInstance
+      , 0                                                 // hIcon
+      , 0                                                 // hCursor
+      , 0                                                 // hbrBackground
+      , 0                                                 // lpszMenuName
+      , "Minesweeper/2024 by mrange, Virgill and Pestis"  // lpszClassName
   };
 
   #pragma data_seg(".waveFormatSpecification")

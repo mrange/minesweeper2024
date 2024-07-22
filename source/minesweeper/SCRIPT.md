@@ -23,7 +23,7 @@ There are 16 bombs on a 12x12 board, which means it's usually simple to solve, b
 
 You start the game with 1000 points, which tick down. You carry over the remaining points when finishing a board, so it's good to be quick and precise. If you hit a bomb, the game is over, and you get your final score.
 
-When I started, I realized the x86 code would be bigger than for the other 4KiB intros I had done. I thought I could optimize with assembler, but it was folly. I saved some bytes with assembler code, but found more space by rewriting the OpenGL shader. A better x86 programmer could probably save more bytes.
+When I started, I realized the x86 code would be bigger than for the other 4KiB intros I had done. I thought I could optimize with assembler, but I only managed to save some bytes with assembler code. I was more successful by rewriting the OpenGL shader. A better x86 programmer could probably save more bytes.
 
 I use uniform arrays to send the game state to the shader, which is probably why the GPU load is high on low-tier graphics cards. Arrays are bad for performance but good for space. With more time, I could rewrite to use a texture instead. Mid-tier NVIDIA cards seem to optimize array access.
 
