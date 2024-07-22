@@ -1,4 +1,4 @@
-# Video script
+# Minesweeper/2024 - Video script
 
 ## FFMPEG
 
