@@ -13,11 +13,11 @@ Hi, I'm Mårten Rånge. Together with Virgill, I created this 4KiB version of Mi
 
 I'm using an AI voice not because I'm shy, but to avoid editing out my hums and pauses.
 
-The inspiration for this 4KiB game is the old Microsoft Minesweeper and what pushed me to attempt a 4KiB game was [Serato's](https://demozoo.org/sceners/120814) remarkable [256-byte C64 Tetris game](https://demozoo.org/productions/338030).
+The inspiration for this 4KiB game is the old Microsoft Minesweeper. What pushed me to attempt a 4KiB game was  [Serato's](https://demozoo.org/sceners/120814) remarkable [256-byte C64 Tetris game](https://demozoo.org/productions/338030).
 
 I've made a few 4KiB intros before, so I thought creating a 4KiB game with OpenGL graphics and music would be an interesting challenge.
 
-I always enjoyed Minesweeper, especially the small puzzles, so I changed the rules to make the board small and added a time factor to the game.
+I always enjoyed Minesweeper, especially the small puzzles. So, I changed the rules to make the board small and added a time factor to the game.
 
 There are 16 bombs on a 12x12 board, which means it's usually simple to solve, but tricky boards are possible. You may end up in an ambiguous situation, but it's often possible to solve using the board and the info at the bottom of the screen.
 
