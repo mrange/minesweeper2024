@@ -3,7 +3,7 @@
 ## FFMPEG
 
 ```bash
-ffmpeg.exe -to 135 -i ms2024.mkv -i script.wav -filter_complex "[0:v]fade=t=in:st=0:d=3,fade=t=out:st=132:d=3[v];[0:a]volume=0.3,afade=t=in:st=0:d=1,afade=t=out:st=132:d=3[a0];[1:a]volume=1,afade=t=in:st=0:d=3,afade=t=out:st=132:d=3[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=3[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset veryslow ms2024.mp4
+ffmpeg.exe -to 135 -i ms2024.mkv -i script.wav -filter_complex "[0:v]fade=t=in:st=0:d=3,fade=t=out:st=132:d=3[v];[0:a]volume=0.15,afade=t=in:st=0:d=3,afade=t=out:st=132:d=3[a0];[1:a]volume=1,afade=t=in:st=0:d=0,afade=t=out:st=132:d=3[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=3[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset veryslow ms2024.mp4
 ```
 
 ## Script
