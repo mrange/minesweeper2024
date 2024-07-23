@@ -619,6 +619,24 @@ int __cdecl main() {
   ((PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddress("glDebugMessageCallback"))(debug_callback, 0);
 #endif
 
+#ifdef _DEBUG
+  {
+    auto glVersion           = glGetString(GL_VERSION);
+    auto glRenderer          = glGetString(GL_RENDERER);
+    auto glVendor            = glGetString(GL_VENDOR);
+    auto glShaderLangVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    auto glExtensions        = glGetString(GL_EXTENSIONS);
+    printf(
+        "Initialized OpenGL with Version=%s, Renderer=%s, Vendor=%s, Shader lang version=%s, Extensions=%s\n"
+      , glVersion          
+      , glRenderer         
+      , glVendor           
+      , glShaderLangVersion
+      , glExtensions       
+      );
+  }
+#endif
+
   // Compiles the provided fragment shader into a shader program
   auto fragmentShaderProgram = ((PFNGLCREATESHADERPROGRAMVPROC)wglGetProcAddress(nm_glCreateShaderProgramv))(GL_FRAGMENT_SHADER, 1, fragmentShaders);
 

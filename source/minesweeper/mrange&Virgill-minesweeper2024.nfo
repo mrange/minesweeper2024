@@ -1,0 +1,43 @@
+ `----- - --- ---------?\___/?\/zS!?\___/?\/-o
+               mrange & virgill              |
+ `----- - --- ------ -----\___/?\/!?\___/?\/-o
+                                             |
+     release name: Minesweeper/2024          |
+             type: Windows 4KiB game         |
+  release date: 18.08.2024                   |
+  party/compo: Evoke 2024/Interactive        |
+                                             |
+                                             |
+ code: mrange                                |
+ music: Virgill                              |
+                                             |
+                                             |
+mrange - The inspiration for this 4KiB game  |
+ is the old Microsoft Minesweeper. What      |
+ pushed me to attempt a 4KiB game was        |
+ Serato's remarkable 256-byte C64 Tetris game|
+                                             |
+I've made a few 4KiB intros before, so I     |
+ thought creating a 4KiB game with OpenGL    |
+ graphics and music would be an interesting  |
+ challenge.                                  |
+                                             |
+I always enjoyed Minesweeper, especially the |
+ small puzzles. So, I changed the rules to   |
+ make the board small and added a time factor|
+ to the game.                                |
+                                             |
+Thanks to Virgill for the music. Thanks to   |
+ Pestis for Sointu. Thanks to Rune Stubbe and|
+ Aske Simon Christensen for Crinkler. Thanks |
+ to Laurent Le Brun for Shader Minifier.     |
+ Big props to Serato for his amazing 256-byte|
+ Tetris game on C64.                         |
+                                             |
+The Minesweeper source code is available on  |
+ GitHub for those interested.                |
+                                             |
+ https://github.com/mrange/minesweeper2024   |
+                                             |
+                                        _  .:!
+ <----- ----- -  -   -     - ----- ----\/----'
