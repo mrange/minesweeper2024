@@ -1,5 +1,7 @@
 # Minesweeper/2024, 2nd place in  Evoke 24 interactive
 
+![Minesweeper/2024](assets/minesweeper2024.png)
+
 ## Development Notes
 
 ### Code and Optimization
